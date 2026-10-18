@@ -1,0 +1,26 @@
+{
+  "name": "@sorcerer/api",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "type": "module",
+  "scripts": {},
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@sorcerer/config": "workspace:*",
+    "hono": "catalog:"
+  },
+  "dependencies": {
+    "dotenv": "catalog:",
+    "zod": "catalog:",
+    "@sorcerer/env": "workspace:*",
+    "@sorcerer/db": "workspace:*",
+    "@trpc/server": "catalog:",
+    "@trpc/client": "catalog:"
+  }
+}

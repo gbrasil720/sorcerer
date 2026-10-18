@@ -1,0 +1,20 @@
+{
+  "name": "@sorcerer/arara",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "devDependencies": {
+    "typescript": "catalog:",
+    "@sorcerer/config": "workspace:*"
+  },
+  "dependencies": {
+    "@ararahq/sdk": "^1.8.1"
+  }
+}

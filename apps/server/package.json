@@ -1,0 +1,31 @@
+{
+  "name": "server",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsdown",
+    "check-types": "tsc -b",
+    "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run dist/index.mjs"
+  },
+  "dependencies": {
+    "dotenv": "catalog:",
+    "zod": "catalog:",
+    "@sorcerer/env": "workspace:*",
+    "@sorcerer/api": "workspace:*",
+    "@sorcerer/db": "workspace:*",
+    "@sorcerer/arara": "workspace:*",
+    "hono": "catalog:",
+    "@trpc/server": "catalog:",
+    "@hono/trpc-server": "^0.4.2",
+    "@getmonitor/node": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "tsdown": "0.22.0",
+    "unrun": "^0.3.1",
+    "@sorcerer/config": "workspace:*",
+    "@types/bun": "catalog:"
+  }
+}
