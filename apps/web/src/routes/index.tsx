@@ -6,8 +6,29 @@ export const Route = createFileRoute("/")({
 });
 
 // Placeholders kept from the design until the repo is public.
-const GITHUB_URL = "https://github.com/gbrasil720/sorcerer";
-const STARS = "[STARS]";
+const REPO = "gbrasil720/sorcerer";
+const GITHUB_URL = `https://github.com/${REPO}`;
+// Always the newest release: the release workflow uploads Sorcerer.dmg to each one.
+const DOWNLOAD_URL = `${GITHUB_URL}/releases/latest/download/Sorcerer.dmg`;
+const DOCS_URL = `${GITHUB_URL}#readme`;
+const INSTALL_URL = `${GITHUB_URL}#install`;
+const CHANGELOG_URL = `${GITHUB_URL}/releases`;
+
+/** Live star count from GitHub; null until it loads (or if the API is unreachable). */
+function useStars() {
+  const [stars, setStars] = useState<number | null>(null);
+  useEffect(() => {
+    fetch(`https://api.github.com/repos/${REPO}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(
+        (d) =>
+          typeof d?.stargazers_count === "number" &&
+          setStars(d.stargazers_count),
+      )
+      .catch(() => {});
+  }, []);
+  return stars;
+}
 const LICENSE = "MIT";
 
 function Landing() {
@@ -330,8 +351,9 @@ function Nav() {
     ["demo", "#demo"],
     ["features", "#features"],
     ["local-first", "#local"],
-    ["docs", "#docs"],
+    ["docs", DOCS_URL],
   ];
+  const stars = useStars();
   return (
     <header className="sticky top-0 z-20 border-line border-b bg-ink/85 backdrop-blur">
       <nav className="mx-auto flex h-[78px] max-w-[1248px] items-center justify-between px-6">
@@ -356,7 +378,7 @@ function Nav() {
             href={GITHUB_URL}
             className="border border-line px-4 py-2.5 text-paper hover:border-paper/40"
           >
-            ★ star · {STARS}
+            ★ star{stars === null ? " on GitHub" : ` · ${stars}`}
           </a>
         </div>
       </nav>
@@ -387,20 +409,16 @@ function Hero() {
           and watch opinions form, collide and spread — round by round.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
-          <Btn href="#download" primary>
+          <Btn href={DOWNLOAD_URL} primary>
             ↓ download for macOS
           </Btn>
           <Btn href={GITHUB_URL}>★ star on GitHub</Btn>
-          <Btn href="#docs">read the docs →</Btn>
+          <Btn href={DOCS_URL}>read the docs →</Btn>
         </div>
         <p className="mt-7 font-mono text-muted text-xs">
-          also on{" "}
-          <a href="#download" className="text-paper underline">
-            Windows
-          </a>{" "}
-          ·{" "}
-          <a href="#download" className="text-paper underline">
-            Linux
+          free · macOS 15+ · Apple silicon &amp; Intel —{" "}
+          <a href={INSTALL_URL} className="text-paper underline">
+            first launch?
           </a>{" "}
           — runs on your machine, with your AI subscriptions
         </p>
@@ -1000,7 +1018,7 @@ const PILLARS = [
   [
     "[_]",
     "A native app",
-    "Runs on your computer — macOS, Windows and Linux. No account on our side.",
+    "A real Mac app: SwiftUI, a 4 MB download, Apple silicon and Intel. No account on our side.",
   ],
   [
     "~/",
@@ -1087,13 +1105,17 @@ function FinalCta() {
         Ask better questions before you act.
       </h2>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Btn href="#download" primary>
-          ↓ macOS
+        <Btn href={DOWNLOAD_URL} primary>
+          ↓ download for macOS
         </Btn>
-        <Btn href="#download">↓ Windows</Btn>
-        <Btn href="#download">↓ Linux</Btn>
         <Btn href={GITHUB_URL}>★ star on GitHub</Btn>
+        <Btn href={INSTALL_URL}>how to install →</Btn>
       </div>
+      <p className="mt-6 max-w-[520px] font-mono text-muted text-xs leading-5">
+        Sorcerer isn't signed with a paid Apple developer account, so macOS asks
+        once before the first launch. Open it, then System Settings › Privacy
+        &amp; Security › Open Anyway.
+      </p>
       <code className="mt-8 border border-line px-4 py-3 font-mono text-sm">
         <span className="text-ember">$</span> git clone {GITHUB_URL}
       </code>
@@ -1103,20 +1125,20 @@ function FinalCta() {
 
 function Footer() {
   return (
-    <footer id="docs" className="border-line border-t">
+    <footer className="border-line border-t">
       <div className="mx-auto flex max-w-[1248px] flex-wrap items-center justify-between gap-4 px-6 py-8 font-mono text-muted text-xs">
         <span className="flex items-center gap-3">
           <Pixels rows={HAT} size={1.4} /> sorcerer · open source · inspired by
           MiroFish
         </span>
         <span className="flex gap-6">
-          <a href="#docs" className="hover:text-paper">
+          <a href={DOCS_URL} className="hover:text-paper">
             docs
           </a>
           <a href={GITHUB_URL} className="hover:text-paper">
             github
           </a>
-          <a href="#docs" className="hover:text-paper">
+          <a href={CHANGELOG_URL} className="hover:text-paper">
             changelog
           </a>
           <span>license · {LICENSE}</span>
