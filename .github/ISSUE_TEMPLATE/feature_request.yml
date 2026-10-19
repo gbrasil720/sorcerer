@@ -13,7 +13,7 @@ body:
     id: idea
     attributes:
       label: How could it work?
-      description: Any shape is fine: a sentence, a sketch, a screenshot of another app.
+      description: "Any shape is fine: a sentence, a sketch, a screenshot of another app."
   - type: dropdown
     id: area
     attributes:
