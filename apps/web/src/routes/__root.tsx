@@ -19,24 +19,6 @@ export interface RouterAppContext {
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
-  head: () => ({
-    meta: [
-      {
-        title: "Sorcerer — create a community, explore a hypothesis",
-      },
-      {
-        name: "description",
-        content:
-          'Open-source, local-first app that simulates small communities of AI agents so you can test a "what if…?" before you act.',
-      },
-    ],
-    links: [
-      {
-        rel: "icon",
-        href: "/favicon.ico",
-      },
-    ],
-  }),
 });
 
 function GetMonitorOutlet() {
