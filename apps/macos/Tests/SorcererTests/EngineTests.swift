@@ -35,6 +35,26 @@ final class EngineTests: XCTestCase {
         XCTAssertEqual(b.moodByRound[1], -0.05, accuracy: 0.001)
     }
 
+    func testRewindRestoresAnEarlierRound() throws {
+        var b = branch()
+        try Engine.apply(#"{"posts":[{"author":"ada","text":"meh","mood":-0.8}],"memories":{"ada":"price up"}}"#, to: &b)
+        b.events.append(WorldEvent(round: 2, text: "outage"))
+        try Engine.apply(#"{"posts":[{"author":"ada","text":"fine","mood":0.6}],"memories":{"ada":"outage fixed"}}"#, to: &b)
+
+        let r1 = Engine.rewind(b, to: 1, start: branch().characters)
+        XCTAssertEqual(r1.round, 1)
+        XCTAssertEqual(r1.posts.map(\.text), ["meh"])
+        XCTAssertTrue(r1.events.isEmpty)
+        XCTAssertEqual(r1.moodByRound.count, 2)
+        XCTAssertEqual(r1.characters[0].mood, -0.8)
+        XCTAssertEqual(r1.characters[0].memories, ["r1: price up"])
+
+        let r0 = Engine.rewind(b, to: 0, start: branch().characters)
+        XCTAssertTrue(r0.posts.isEmpty)
+        XCTAssertEqual(r0.characters[0].mood, -0.4)
+        XCTAssertEqual(Engine.rewind(b, to: 5, start: nil), b) // past the end: unchanged
+    }
+
     func testNoJSONThrowsAndLeavesBranchAlone() {
         var b = branch()
         XCTAssertThrowsError(try Engine.apply("I can't do that.", to: &b))
