@@ -713,7 +713,8 @@ function Preview() {
                       round {round}
                     </span>
                     <span className="hidden text-ember 2xl:inline">
-                      <span className="motion-safe:animate-pulse">●</span> running
+                      <span className="motion-safe:animate-pulse">●</span>{" "}
+                      running
                     </span>
                   </div>
                   <div className="hidden gap-1.5 whitespace-nowrap xl:flex">
@@ -757,7 +758,7 @@ function Preview() {
                     ) : (
                       <div
                         key={i}
-                        className="flex shrink-0 motion-safe:animate-[fadein_.5s_ease-out] gap-3 rounded-md border border-line bg-panel px-3 py-2.5"
+                        className="flex shrink-0 gap-3 rounded-md border border-line bg-panel px-3 py-2.5 motion-safe:animate-[fadein_.5s_ease-out]"
                       >
                         <Avatar name={it.who} size={30} />
                         <div className="min-w-0">
@@ -1485,14 +1486,14 @@ function Inside() {
                 sentiment <span className="text-paper">+0.3</span>
               </span>
               <span>
-                would pay <span className="text-paper">71%</span>
+                upgraded <span className="text-paper">5 / 8</span>
               </span>
               <span className="text-ember">B</span>
               <span>
                 sentiment <span className="text-paper">+0.2</span>
               </span>
               <span>
-                would pay <span className="text-paper">58%</span>
+                upgraded <span className="text-paper">3 / 8</span>
               </span>
             </div>
           </Card>
@@ -1530,6 +1531,67 @@ function Inside() {
               <span className="text-ember">❚❚</span> village-dragon paused at
               r22 <span className="text-muted">· resumes in 2h 14m</span>
             </p>
+          </Card>
+        </Feature>
+
+        <Feature
+          n="06"
+          tag="actions & polls"
+          title="Count what they do, ask what they think."
+          body="Characters act as well as talk: upgrade, cancel, leave, invite a friend. Ask everyone a question at any round, off the record or in public, and every answer comes with a reason. Reports count all of it instead of guessing."
+          flip
+        >
+          <Card className="p-6">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-medium text-lg">
+                <span className="text-ember">? </span>Would you pay $14 a month?
+              </p>
+              <span className="shrink-0 font-mono text-muted text-xs">
+                off the record · 6 answered
+              </span>
+            </div>
+            <div className="mt-4 flex flex-col gap-2.5 font-mono text-sm">
+              {(
+                [
+                  ["yes", 1, ["dana"]],
+                  ["no", 3, ["kenji", "marisol", "rex"]],
+                  ["not sure", 2, ["priya", "theo"]],
+                ] as [string, number, string[]][]
+              ).map(([o, n, who]) => (
+                <div key={o} className="flex items-center gap-3">
+                  <span className="w-20">{o}</span>
+                  <span className="h-2 flex-1 bg-line">
+                    <span
+                      className="block h-full bg-ember/80"
+                      style={{ width: `${(n / 6) * 100}%` }}
+                    />
+                  </span>
+                  <span className="flex w-16 gap-0.5">
+                    {who.map((w) => (
+                      <Avatar key={w} name={w} size={16} />
+                    ))}
+                  </span>
+                  <span className="w-4 text-right">{n}</span>
+                </div>
+              ))}
+            </div>
+            <ul className="mt-5 border-line border-t pt-3 text-sm">
+              <li className="flex gap-3 py-1.5">
+                <Avatar name="priya" size={18} />
+                <span className="w-20 font-mono text-ember text-xs leading-5">
+                  not sure
+                </span>
+                <span className="text-paper/80">
+                  My trial elsewhere is holding up; show me what the extra $5
+                  buys.
+                </span>
+              </li>
+              <li className="flex items-center gap-3 rounded-md border border-ember/40 border-dashed px-3 py-2 font-mono text-xs">
+                <span className="text-ember">◆</span>
+                <Avatar name="kenji" size={16} /> @kenji{" "}
+                <span className="text-ember">switch to a free app</span>
+              </li>
+            </ul>
           </Card>
         </Feature>
       </div>
@@ -1799,6 +1861,10 @@ const FAQ = [
   [
     "What happens when I hit my limits?",
     "Sorcerer reads your Claude usage windows, pauses before you run out (at 90% by default) and resumes when the window resets. It can also spread rounds out so a long run fits in one window.",
+  ],
+  [
+    "Can it tell me how many people would buy?",
+    "It counts what characters do (upgrade, cancel, leave, invite) and what they answer in polls, so you get numbers like “3 of 8 upgraded”. They're counts from a small simulated community, useful to compare branches and spot objections, not a market forecast.",
   ],
   [
     "Are the results real research?",
