@@ -25,6 +25,61 @@ struct ReportScreen: View {
     }
 
     private func color(_ i: Int) -> Color { i == 0 ? .paper : i == 1 ? .ember : .muted }
+    private struct Point: Identifiable {
+        var branch: String
+        var round: Int
+        var mood: Double
+        var color: Color
+        var first: Bool
+        var id: String { "\(branch)-\(round)" }
+    }
+
+    private func sentimentChart(_ e: Experiment) -> some View {
+        let pts: [Point] = e.branches.enumerated().flatMap { i, b in
+            b.moodByRound.enumerated().map { r, m in Point(branch: b.name, round: r, mood: m, color: color(i), first: i == 0) }
+        }
+        let fork = forkRound(e)
+        let last = maxRound(e)
+        return Chart {
+            RuleMark(y: .value("neutral", 0))
+                .foregroundStyle(Color.dim)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            if let fork {
+                RuleMark(x: .value("fork", fork))
+                    .foregroundStyle(Color.dim)
+                    .annotation(position: .top, alignment: .leading) { Text("fork").font(.mono(10)).foregroundStyle(Color.muted) }
+            }
+            ForEach(pts) { p in
+                LineMark(x: .value("round", p.round), y: .value("mood", p.mood), series: .value("branch", p.branch))
+                    .foregroundStyle(p.color)
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [2, 3]))
+                PointMark(x: .value("round", p.round), y: .value("mood", p.mood))
+                    .foregroundStyle(p.color)
+                    .symbol(p.first ? .circle : .diamond)
+                    .symbolSize(36)
+            }
+        }
+        .chartYScale(domain: -1...1)
+        .chartXScale(domain: 0...last, range: .plotDimension(startPadding: 8, endPadding: 24))
+        .chartXAxis { roundAxis(last, fork: fork) }
+        .chartYAxis { moodAxis }
+    }
+
+    private func roundAxis(_ last: Int, fork: Int?) -> some AxisContent {
+        AxisMarks(values: Array(1...last)) { v in
+            AxisValueLabel {
+                Text("r\(v.as(Int.self) ?? 0)").font(.mono(10)).foregroundStyle(v.as(Int.self) == fork ? Color.ember : Color.muted)
+            }
+        }
+    }
+
+    private var moodAxis: some AxisContent {
+        AxisMarks(position: .leading, values: [-0.6, 0, 0.6]) { v in
+            AxisGridLine().foregroundStyle(Color.line)
+            AxisValueLabel { Text(signed(v.as(Double.self) ?? 0)).font(.mono(10)).foregroundStyle(Color.muted) }
+        }
+    }
+
     private func maxRound(_ e: Experiment) -> Int { max(1, e.branches.map(\.round).max() ?? 1) }
     private func forkRound(_ e: Experiment) -> Int? {
         e.branches.dropFirst().compactMap { $0.parent.flatMap { Int($0.split(separator: "r").last ?? "") } }.min()
@@ -44,37 +99,7 @@ struct ReportScreen: View {
                         Text("\(i == 0 ? "●" : "◆") \(b.title)").font(.mono(10)).foregroundStyle(color(i))
                     }
                 }
-                Chart {
-                    RuleMark(y: .value("neutral", 0)).foregroundStyle(Color.dim).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                    if let fork = forkRound(e) {
-                        RuleMark(x: .value("fork", fork)).foregroundStyle(Color.dim)
-                            .annotation(position: .top, alignment: .leading) { Text("fork").font(.mono(10)).foregroundStyle(Color.muted) }
-                    }
-                    ForEach(Array(e.branches.enumerated()), id: \.element.id) { i, b in
-                        ForEach(Array(b.moodByRound.enumerated()), id: \.offset) { r, mood in
-                            LineMark(x: .value("round", r), y: .value("mood", mood), series: .value("branch", b.name))
-                                .foregroundStyle(color(i))
-                                .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [2, 3]))
-                            PointMark(x: .value("round", r), y: .value("mood", mood))
-                                .foregroundStyle(color(i))
-                                .symbol(i == 0 ? .circle : .diamond)
-                                .symbolSize(36)
-                        }
-                    }
-                }
-                .chartYScale(domain: -1...1)
-                .chartXScale(domain: 0...maxRound(e), range: .plotDimension(startPadding: 8, endPadding: 24))
-                .chartXAxis {
-                    AxisMarks(values: Array(1...maxRound(e))) { v in
-                        AxisValueLabel { Text("r\(v.as(Int.self) ?? 0)").font(.mono(10)).foregroundStyle(v.as(Int.self) == forkRound(e) ? Color.ember : Color.muted) }
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading, values: [-0.6, 0, 0.6]) { v in
-                        AxisGridLine().foregroundStyle(Color.line)
-                        AxisValueLabel { Text(signed(v.as(Double.self) ?? 0)).font(.mono(10)).foregroundStyle(Color.muted) }
-                    }
-                }
+                sentimentChart(e)
                 .frame(height: 240)
             }
             .card(padding: 18)
