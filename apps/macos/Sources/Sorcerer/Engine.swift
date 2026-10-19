@@ -141,7 +141,7 @@ enum Engine {
         return """
 
         Besides talking, characters can act. Allowed actions: \(all.map { "\"\($0)\"" }.joined(separator: ", ")).
-        Only include someone in "actions" when this round changes what they do; most rounds only one or two people act.
+        Only include someone in "actions" when this round changes what they do; never repeat what they last did. Most rounds only one or two people act.
         "\(leave)" means they stop taking part; "\(comeBack)" brings back someone who left; "\(invite)" brings one new person in (say who in "who").
         \(gone.isEmpty ? "" : "These people have left and don't post unless they come back: \(gone.joined(separator: ", ")).")
         """
@@ -152,8 +152,10 @@ enum Engine {
 
     static func roundPrompt(_ e: Experiment, _ b: Branch) -> String {
         let next = b.round + 1
+        var did: [String: String] = [:]
+        for a in b.actions ?? [] { did[a.who] = "r\(a.round) \(a.act)" }
         let cast = b.characters.map {
-            "- \($0.handle) — \($0.role) — mood \(String(format: "%.1f", $0.mood)) — ties: \(($0.ties ?? [:]).map { "\($0.key) (\($0.value))" }.sorted().joined(separator: ", ")) — remembers: \($0.memories.suffix(4).joined(separator: "; "))"
+            "- \($0.handle) — \($0.role) — mood \(String(format: "%.1f", $0.mood)) — ties: \(($0.ties ?? [:]).map { "\($0.key) (\($0.value))" }.sorted().joined(separator: ", ")) — remembers: \($0.memories.suffix(4).joined(separator: "; "))\(did[$0.handle].map { " — last did: \($0)" } ?? "")"
         }.joined(separator: "\n")
         let start = max(0, b.posts.count - 24)
         let feed = b.posts[start...].enumerated().map { i, p in
