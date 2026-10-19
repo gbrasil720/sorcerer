@@ -49,11 +49,11 @@ final class Updater {
 
     /// Quiet checks (on launch) only light up the sidebar; asking from a menu opens the sheet.
     func check(quietly: Bool = false) async {
+        if !quietly { showing = true }
         switch phase {
         case .downloading, .ready: return
         default: break
         }
-        if !quietly { showing = true }
         phase = .checking
         do {
             var req = URLRequest(url: Self.api)
@@ -78,11 +78,14 @@ final class Updater {
             try? fm.removeItem(at: dir)
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
             let dmg = dir.appendingPathComponent("Sorcerer.dmg")
-            let (tmp, _) = try await URLSession.shared.download(from: dmgURL)
+            let (tmp, dmgResponse) = try await URLSession.shared.download(from: dmgURL)
+            try Self.ok(dmgResponse)
             try fm.moveItem(at: tmp, to: dmg)
 
-            let (sum, _) = try await URLSession.shared.data(from: sumURL)
-            let expected = String(decoding: sum, as: UTF8.self).split(separator: " ").first.map(String.init) ?? ""
+            let (sum, sumResponse) = try await URLSession.shared.data(from: sumURL)
+            try Self.ok(sumResponse)
+            let expected = String(data: sum, encoding: .utf8)?
+                .split(whereSeparator: \.isWhitespace).first.map { $0.lowercased() } ?? ""
             let actual = SHA256.hash(data: try Data(contentsOf: dmg)).map { String(format: "%02x", $0) }.joined()
             guard !expected.isEmpty, expected == actual else {
                 throw AIError(message: "The download didn't match its checksum, so it wasn't installed.")
@@ -126,6 +129,13 @@ final class Updater {
         Task {
             try? await Task.sleep(for: .milliseconds(400))
             NSApp.terminate(nil)
+        }
+    }
+
+    /// URLSession treats a 404 page as a successful download; don't.
+    private static func ok(_ r: URLResponse) throws {
+        if let code = (r as? HTTPURLResponse)?.statusCode, !(200..<300).contains(code) {
+            throw AIError(message: "GitHub answered \(code) while downloading the update.")
         }
     }
 
