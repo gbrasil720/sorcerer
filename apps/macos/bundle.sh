@@ -6,13 +6,10 @@
 set -e
 cd "$(dirname "$0")"
 VERSION=${VERSION:-0.1.0}
-if [ -n "$UNIVERSAL" ]; then
-  swift build -c release --arch arm64 --arch x86_64
-  BIN=.build/out/Products/Release/Sorcerer
-else
-  swift build -c release
-  BIN=.build/release/Sorcerer
-fi
+if [ -n "$UNIVERSAL" ]; then set -- --arch arm64 --arch x86_64; fi
+swift build -c release "$@"
+# Ask SwiftPM where it put the binary: the folder differs between toolchains.
+BIN="$(swift build -c release "$@" --show-bin-path)/Sorcerer"
 APP=Sorcerer.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
