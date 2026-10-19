@@ -7,7 +7,6 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { trpc } from "@/utils/trpc";
 import "../index.css";
@@ -23,11 +22,12 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   head: () => ({
     meta: [
       {
-        title: "sorcerer",
+        title: "Sorcerer — create a community, explore a hypothesis",
       },
       {
         name: "description",
-        content: "sorcerer is a web application",
+        content:
+          'Open-source, local-first app that simulates small communities of AI agents so you can test a "what if…?" before you act.',
       },
     ],
     links: [
@@ -66,10 +66,7 @@ function RootComponent() {
         disableTransitionOnChange
         storageKey="vite-ui-theme"
       >
-        <div className="grid h-svh grid-rows-[auto_1fr]">
-          <Header />
-          <GetMonitorOutlet />
-        </div>
+        <GetMonitorOutlet />
         <Toaster richColors />
       </ThemeProvider>
       <TanStackRouterDevtools position="bottom-left" />
