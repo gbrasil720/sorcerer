@@ -125,6 +125,9 @@ struct FeedScreen: View {
                     if let live = store.live, live.branch == b.id, store.replay == nil {
                         LiveRoundView(live: live, branch: b)
                     }
+                    if let poll = store.livePoll, poll.branch == b.id {
+                        LivePollCard(poll: poll, branch: b)
+                    }
                     Color.clear.frame(height: 1).id("end")
                 }
                 .padding(.horizontal, 18).padding(.bottom, 18)
@@ -136,6 +139,9 @@ struct FeedScreen: View {
             .onChange(of: store.live?.partial.done.count) { withAnimation { proxy.scrollTo("end") } }
             .onChange(of: store.live?.partial.typing) { withAnimation { proxy.scrollTo("end") } }
             .onChange(of: store.live?.round) { withAnimation { proxy.scrollTo("end") } }
+            .onChange(of: store.livePoll?.started) { withAnimation { proxy.scrollTo("end") } }
+            .onChange(of: store.livePoll?.partial.done.count) { withAnimation { proxy.scrollTo("end") } }
+            .onChange(of: store.livePoll?.partial.typing) { withAnimation { proxy.scrollTo("end") } }
             .task(id: store.focusPost) {
                 // Wait a beat so the lazy stack has laid out before jumping to a cited post.
                 guard let f = store.focusPost else { return }
@@ -155,8 +161,12 @@ struct FeedScreen: View {
                         .textFieldStyle(.plain).font(.mono(12))
                         .focused($injecting)
                         .onSubmit(sendPoll)
-                    Button(store.busy == "asking everyone…" ? "asking…" : "ask", action: sendPoll).buttonStyle(SButton(primary: true))
-                        .disabled(question.isEmpty || store.busy != nil)
+                    if store.livePoll != nil {
+                        HStack(spacing: 6) { PulseDot(); Text("asking everyone…").font(.mono(11)).foregroundStyle(Color.ember) }
+                    } else {
+                        Button("ask", action: sendPoll).buttonStyle(SButton(primary: true))
+                            .disabled(question.isEmpty || store.busy != nil)
+                    }
                 } else {
                     TextField("Inject an event or change a condition…", text: $event)
                         .textFieldStyle(.plain).font(.mono(12))
@@ -196,6 +206,7 @@ struct FeedScreen: View {
         let q = question, opts = Engine.pollOptions(options)
         guard !q.isEmpty, store.busy == nil else { return }
         question = ""
+        view = .feed // the answers arrive in the feed
         Task { await store.poll(q, options: opts, open: publicPoll, every: every == 0 ? nil : every) }
     }
 
@@ -595,6 +606,85 @@ struct UsageBlock: View {
 
 /// The round being written: finished posts appear one by one, the one in progress types out,
 /// and before anything arrives the room is visibly "reading".
+/// A poll the moment it's sent: the question, live bars, answers arriving one by one and who's answering now.
+struct LivePollCard: View {
+    var poll: LivePoll
+    var branch: Branch
+
+    var body: some View {
+        let done = poll.partial.done
+        let answered = Set(done.map(\.who))
+        let waiting = branch.characters.map(\.handle).filter { !answered.contains($0) && !Engine.away(branch).contains($0) }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                PulseDot()
+                Text("?").font(.mono(13, .semibold)).foregroundStyle(Color.ember)
+                Text(poll.question).font(.display(15))
+                Spacer()
+                Text("\(done.count) of \(poll.people) answered").font(.mono(10)).foregroundStyle(Color.ember)
+                TimelineView(.periodic(from: poll.started, by: 1)) { ctx in
+                    Text("· \(Int(ctx.date.timeIntervalSince(poll.started)))s").font(.mono(10)).foregroundStyle(Color.muted)
+                }
+            }
+            ForEach(poll.options, id: \.self) { o in
+                let n = done.filter { $0.answer.pick.lowercased() == o.lowercased() }.count
+                HStack(spacing: 10) {
+                    Text(o).font(.mono(11)).frame(width: 110, alignment: .leading).lineLimit(1)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Rectangle().fill(Color.line)
+                            Rectangle().fill(Color.ember.opacity(0.8))
+                                .frame(width: geo.size.width * CGFloat(n) / CGFloat(max(1, poll.people)))
+                        }
+                    }
+                    .frame(height: 8)
+                    Text("\(n)").font(.mono(11)).frame(width: 20, alignment: .trailing)
+                }
+            }
+            ForEach(done, id: \.who) { a in
+                HStack(alignment: .top, spacing: 8) {
+                    Avatar(name: a.who, size: 18)
+                    Text("@\(a.who)").font(.mono(11, .semibold)).frame(width: 90, alignment: .leading)
+                    Text(a.answer.pick).font(.mono(11)).foregroundStyle(Color.ember).frame(width: 80, alignment: .leading)
+                    Text(a.answer.why).font(.display(13, .regular)).foregroundStyle(Color.paper.opacity(0.8))
+                    Spacer(minLength: 0)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if let who = poll.partial.typing {
+                HStack(alignment: .top, spacing: 8) {
+                    Avatar(name: who, size: 18, highlight: true)
+                    Text("@\(who)").font(.mono(11, .semibold)).frame(width: 90, alignment: .leading)
+                    Text(poll.partial.pick ?? "…").font(.mono(11)).foregroundStyle(Color.ember).frame(width: 80, alignment: .leading)
+                    if poll.partial.draft.isEmpty {
+                        HStack(spacing: 6) { Text("answering").font(.mono(11)).foregroundStyle(Color.muted); TypingDots() }
+                    } else {
+                        (Text(poll.partial.draft) + Text("▍").foregroundStyle(Color.ember))
+                            .font(.display(13, .regular)).foregroundStyle(Color.paper.opacity(0.85))
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            if !waiting.isEmpty {
+                HStack(spacing: 10) {
+                    HStack(spacing: -6) {
+                        ForEach(Array(waiting.prefix(10).enumerated()), id: \.element) { i, h in
+                            Avatar(name: h, size: 22).modifier(Bob(delay: Double(i) * 0.15))
+                        }
+                    }
+                    Text(done.isEmpty && poll.partial.typing == nil
+                         ? (poll.streams ? "everyone is thinking it over…" : "everyone is thinking it over · ChatGPT sends all answers at once")
+                         : "\(waiting.count) still thinking…")
+                        .font(.mono(11)).foregroundStyle(Color.muted)
+                }
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: done.count)
+        .animation(.easeOut(duration: 0.2), value: poll.partial.typing)
+        .card(.ember.opacity(0.6), dashed: true, padding: 16)
+    }
+}
+
 struct LiveRoundView: View {
     var live: LiveRound
     var branch: Branch
@@ -712,7 +802,7 @@ struct PulseDot: View {
 }
 
 /// Gentle up-and-down, offset per avatar, so the waiting room looks alive.
-private struct Bob: ViewModifier {
+struct Bob: ViewModifier {
     var delay: Double
     func body(content: Content) -> some View {
         TimelineView(.animation(minimumInterval: 1 / 20)) { ctx in

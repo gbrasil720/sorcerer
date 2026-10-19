@@ -47,6 +47,8 @@ final class Store {
     var paletteOpen = false
     /// The round being written right now, shown live in the feed.
     var live: LiveRound?
+    /// A poll waiting for answers, shown in the feed the moment it's sent.
+    var livePoll: LivePoll?
     /// A character's answer as it streams into the 1:1 chat.
     var chatDraft: (handle: String, text: String)?
     /// Which settings pane to show when the settings window opens (set by shortcuts into it).
@@ -402,8 +404,15 @@ final class Store {
         let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return }
         replay = nil
+        let branchID = b.id
+        livePoll = LivePoll(branch: branchID, question: q, options: options, people: b.characters.count - Engine.away(b).count,
+                            streams: settings.characters != .codex)
+        defer { livePoll = nil }
         do {
-            let reply = try await ask(Engine.pollPrompt(e, b, question: q, options: options), settings.characters, "asking everyone…")
+            let reply = try await ask(Engine.pollPrompt(e, b, question: q, options: options), settings.characters, "asking everyone…") { [weak self] text in
+                guard let self, self.livePoll?.branch == branchID else { return }
+                self.livePoll?.partial = Engine.partialPoll(text)
+            }
             var p = Poll(round: b.round, question: q, options: options, open: open, every: every)
             p.answers = try Engine.parsePoll(reply, options: options, in: b)
             mutateBranch { b in
@@ -568,6 +577,18 @@ final class Store {
             self.error = error.localizedDescription
         }
     }
+}
+
+/// A poll in flight: the question, who's being asked and the answers so far.
+struct LivePoll {
+    var branch: UUID
+    var question: String
+    var options: [String]
+    var people: Int
+    /// False for providers that answer all at once (ChatGPT): nothing to show until the end.
+    var streams: Bool
+    var started = Date()
+    var partial = Engine.PartialPoll()
 }
 
 /// A round in flight: when it started, and what has streamed in so far.
