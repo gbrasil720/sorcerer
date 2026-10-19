@@ -1,0 +1,52 @@
+name: release
+
+# Push a tag like v0.2.0 and this builds a universal, ad-hoc signed Sorcerer.dmg
+# and publishes it as a GitHub Release. The landing page links to the latest one.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (no v), e.g. 0.1.0. Builds an artifact, publishes nothing."
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test
+        working-directory: apps/macos
+        run: swift test
+
+      - name: Build Sorcerer.dmg
+        working-directory: apps/macos
+        run: |
+          VERSION="${{ inputs.version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+          UNIVERSAL=1 VERSION="$VERSION" ./dmg.sh
+          shasum -a 256 Sorcerer.dmg > Sorcerer.dmg.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sorcerer
+          path: |
+            apps/macos/Sorcerer.dmg
+            apps/macos/Sorcerer.dmg.sha256
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            apps/macos/Sorcerer.dmg apps/macos/Sorcerer.dmg.sha256 \
+            --title "Sorcerer $GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes "Universal (Apple silicon + Intel), macOS 15 or later. First launch: see https://github.com/${{ github.repository }}#install"
