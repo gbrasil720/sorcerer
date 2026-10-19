@@ -296,3 +296,22 @@ final class MetricsTests: XCTestCase {
         XCTAssertEqual(series.map(\.counts), [[0, 1, 1, 1], [0, 0, 1, 1]])
     }
 }
+
+final class ShellTests: XCTestCase {
+    /// The app launches without your Terminal's environment; the CLIs must still be found.
+    func testFindsToolsOutsideTheLoginPath() async throws {
+        XCTAssertTrue(AI.userPath.contains("/.local/bin"))
+        let r = try await AI.shell("echo $PATH")
+        XCTAssertTrue(r.out.contains("/.local/bin"))
+        XCTAssertNotNil(AI.missing((out: "", err: "zsh:1: command not found: claude", code: 127), "claude"))
+        XCTAssertNil(AI.missing((out: "ok", err: "", code: 0), "claude"))
+    }
+
+    /// Run with SORCERER_LIVE=claude under `env -i` to act like a Finder launch.
+    func testClaudeFoundWithoutTerminalEnvironment() async throws {
+        guard ProcessInfo.processInfo.environment["SORCERER_LIVE"] == "claude" else { throw XCTSkip("set SORCERER_LIVE=claude") }
+        let found = await AI.installed("claude"), signed = await AI.signedIn(.claude)
+        XCTAssertTrue(found)
+        XCTAssertTrue(signed)
+    }
+}
