@@ -1,0 +1,26 @@
+# Sorcerer
+
+> Sorcerer is a free, open-source (MIT), native macOS app that simulates small communities of AI agents around a "what if…?" question. You summon characters with personalities, goals, relationships and memory, drop in a hypothesis, and watch opinions form, collide and spread round by round. It is local-first and runs on the AI subscriptions you already have: the Claude CLI (Claude Code), the Codex CLI (ChatGPT) or Ollama. It is made for curiosity and fun, not forecasting.
+
+- Platform: macOS 15 or later, Apple silicon and Intel (universal app), built with SwiftUI, no dependencies
+- Price: free; no account, no server, no API keys required
+- Data: everything is stored as plain JSON in ~/Sorcerer on your Mac
+- Inspired by MiroFish; a separate, from-scratch implementation
+
+## Features
+
+- Experiments: write a what-if question, pick a setting (social feed, forum, group chat, town square, workplace), rounds and speed
+- Context brief: point it at a GitHub repo, folder, website or files; facts are tagged public, insider or hidden so each character only knows what they would know. Secrets like .env files are never read
+- Live rounds: characters post, reply to specific posts, react, remember, and are influenced by their ties; text streams in as it is written
+- Views: feed, world map of relationships, mood graph per character
+- Characters: profiles, 1:1 chat off the record or in-world, persona editing, pixel-art avatar editor
+- Branches: fork the world and compare futures; reports with a sentiment chart and findings that cite the exact posts
+- Usage limits: reads your Claude 5-hour and weekly windows and pauses before you hit them
+- Export experiments with full history or as a fresh scenario
+
+## Links
+
+- [Download Sorcerer.dmg](https://github.com/gbrasil720/sorcerer/releases/latest/download/Sorcerer.dmg): latest release
+- [Source code and README](https://github.com/gbrasil720/sorcerer): install guide, build steps, keyboard shortcuts
+- [Releases and changelog](https://github.com/gbrasil720/sorcerer/releases)
+- [License (MIT)](https://github.com/gbrasil720/sorcerer/blob/main/LICENSE)
