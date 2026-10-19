@@ -15,6 +15,11 @@
 </p>
 
 <p align="center">
+  <a href="https://sorcererapp.dev"><b>sorcererapp.dev</b></a> ·
+  <a href="https://github.com/gbrasil720/sorcerer/releases/latest/download/Sorcerer.dmg">download for macOS</a>
+</p>
+
+<p align="center">
   <img src="docs/screenshots/feed-live.png" alt="A round being written live in the feed" width="900">
 </p>
 
@@ -215,6 +220,9 @@ sorcerer/
 ```
 
 ### The landing page
+
+Live at [sorcererapp.dev](https://sorcererapp.dev), deployed by Cloudflare Pages on every push to `main`
+(build: `bun install --frozen-lockfile && cd apps/web && bun run build`, output `apps/web/dist`).
 
 <img src="docs/screenshots/landing.png" width="100%">
 
