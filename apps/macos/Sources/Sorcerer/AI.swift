@@ -20,14 +20,42 @@ struct Reply {
 /// Talks to the AI tools the user is already signed in to. Sorcerer never sees
 /// a token: it runs the official CLIs (or a local Ollama) and reads the reply.
 enum AI {
-    /// Runs through a login shell so a Finder-launched app sees the same PATH as the terminal.
+    /// The PATH your Terminal has. A login shell alone misses what ~/.zshrc adds (~/.local/bin, where
+    /// the claude installer puts it; nvm, bun…), so ask an interactive shell once and remember it.
+    static let userPath: String = {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        p.arguments = ["-ilc", #"printf '\n__SORCERER_PATH__%s' "$PATH""#]
+        p.standardInput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        let out = Pipe()
+        p.standardOutput = out
+        var found = ""
+        if (try? p.run()) != nil {
+            // An interactive shell can hang on a prompt or plugin; don't wait for it forever.
+            let deadline = DispatchTime.now() + 5
+            DispatchQueue.global().asyncAfter(deadline: deadline) { if p.isRunning { p.terminate() } }
+            let data = out.fileHandleForReading.readDataToEndOfFile()
+            p.waitUntilExit()
+            found = String(decoding: data, as: UTF8.self).components(separatedBy: "__SORCERER_PATH__").last ?? ""
+        }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        // Where the CLIs usually live, in case the shell didn't say.
+        let usual = ["\(home)/.local/bin", "\(home)/.claude/local", "\(home)/.bun/bin", "\(home)/.npm-global/bin",
+                     "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"]
+        var seen = Set<String>()
+        return (found.split(separator: ":").map(String.init) + usual)
+            .filter { !$0.isEmpty && seen.insert($0).inserted }.joined(separator: ":")
+    }()
+
+    /// Runs through a login shell with your Terminal's PATH, so a Finder-launched app finds the same CLIs.
     static func shell(_ command: String, stdin: String? = nil,
                       onLine: (@Sendable (String) -> Void)? = nil) async throws -> (out: String, err: String, code: Int32) {
         try await withCheckedThrowingContinuation { cont in
             DispatchQueue.global().async {
                 let p = Process()
                 p.executableURL = URL(fileURLWithPath: "/bin/zsh")
-                p.arguments = ["-lc", command]
+                p.arguments = ["-lc", "export PATH=\(Sources.quoted(userPath)); \(command)"]
                 p.currentDirectoryURL = FileManager.default.temporaryDirectory
                 let out = Pipe(), err = Pipe(), inp = Pipe()
                 p.standardOutput = out
@@ -147,6 +175,7 @@ enum AI {
                     if let d = delta(line) { send(so.add(d)) }
                 } }
             )
+            if let m = missing(r, "claude") { throw AIError(message: m) }
             return try parseClaude(r.out, err: r.err)
         case .codex:
             let file = FileManager.default.temporaryDirectory.appendingPathComponent("sorcerer-\(UUID().uuidString).txt")
@@ -155,7 +184,7 @@ enum AI {
                 "codex exec --skip-git-repo-check --ephemeral -s read-only\(pick) -o '\(file.path)' -", stdin: prompt
             )
             guard r.code == 0, let text = try? String(contentsOf: file, encoding: .utf8) else {
-                throw AIError(message: "ChatGPT: " + tail(r.err))
+                throw AIError(message: missing(r, "codex") ?? "ChatGPT: " + tail(r.err))
             }
             return Reply(text: text)
         case .ollama:
@@ -227,6 +256,12 @@ enum AI {
         }
         if let text { return Reply(text: text, usage: usage) }
         throw AIError(message: "Claude: " + tail(failure ?? (err.isEmpty ? out : err)), usage: usage)
+    }
+
+    /// A readable message when the CLI itself can't be found, instead of zsh's "command not found".
+    static func missing(_ r: (out: String, err: String, code: Int32), _ binary: String) -> String? {
+        guard r.code == 127 || r.err.contains("command not found: \(binary)") else { return nil }
+        return "Couldn't find the \(binary) CLI. Install it and sign in, or pick another AI in Settings › Providers. Looked in: \(userPath.split(separator: ":").prefix(4).joined(separator: ", "))…"
     }
 
     private static func tail(_ s: String) -> String {
