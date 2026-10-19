@@ -112,6 +112,7 @@ struct ReportScreen: View {
                             .font(.mono(11)).foregroundStyle(color(i))
                         LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 14) {
                             stat(signed(Engine.averageMood(b)), "final sentiment", color(i))
+                            ForEach(Engine.counted(e, b), id: \.self) { m in stat(m.value, m.label + " · counted", color(i)) }
                             ForEach(summary?.metrics ?? [
                                 .init(label: "on board", value: "\(b.characters.filter { $0.mood > 0 }.count) / \(b.characters.count)"),
                                 .init(label: "posts", value: "\(b.posts.count)"),
