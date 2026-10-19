@@ -15,7 +15,7 @@ const CHANGELOG_URL = `${GITHUB_URL}/releases`;
 const ISSUES_URL = `${GITHUB_URL}/issues/new/choose`;
 // Downloading with curl skips the quarantine flag that makes macOS block unsigned apps.
 const INSTALL_CMD = "curl -fsSL https://sorcererapp.dev/install.sh | sh";
-const VERSION = "v0.2";
+const VERSION = "v0.3";
 const LICENSE = "MIT";
 
 /** Live star count from GitHub; null until it loads (or if the API is unreachable). */
