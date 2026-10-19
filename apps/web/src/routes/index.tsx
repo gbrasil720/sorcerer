@@ -713,7 +713,7 @@ function Preview() {
                       round {round}
                     </span>
                     <span className="hidden text-ember 2xl:inline">
-                      <span className="animate-pulse">●</span> running
+                      <span className="motion-safe:animate-pulse">●</span> running
                     </span>
                   </div>
                   <div className="hidden gap-1.5 whitespace-nowrap xl:flex">
@@ -757,7 +757,7 @@ function Preview() {
                     ) : (
                       <div
                         key={i}
-                        className="flex shrink-0 animate-[fadein_.5s_ease-out] gap-3 rounded-md border border-line bg-panel px-3 py-2.5"
+                        className="flex shrink-0 motion-safe:animate-[fadein_.5s_ease-out] gap-3 rounded-md border border-line bg-panel px-3 py-2.5"
                       >
                         <Avatar name={it.who} size={30} />
                         <div className="min-w-0">
@@ -866,7 +866,7 @@ function Callout({
   return (
     <div
       aria-hidden
-      className={`absolute z-10 items-center gap-3 rounded-lg border border-line bg-panel/95 px-4 py-3 font-mono text-muted text-xs leading-5 shadow-2xl backdrop-blur transition-all duration-500 ${
+      className={`absolute z-10 items-center gap-3 rounded-lg border border-line bg-panel/95 px-4 py-3 font-mono text-muted text-xs leading-5 shadow-2xl backdrop-blur motion-safe:transition-all motion-safe:duration-500 ${
         show ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
       } ${className}`}
     >
