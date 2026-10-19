@@ -217,6 +217,12 @@ stops a browser download the first time with *"Apple could not verify Sorcerer�
 
 You only do this once. If you'd rather not trust a download, [build it yourself](#build-it): it's one command.
 
+**Updates.** Sorcerer checks GitHub for a new release when it opens. When there is one, an **update available**
+card shows up at the bottom of the sidebar: it shows what changed, downloads the new version, checks it against
+the release checksum and asks before restarting into it. You can also use **Sorcerer › Check for Updates…**.
+
+<img src="docs/screenshots/update.png" alt="Update sheet with the changelog and a restart now button" width="100%">
+
 ## Build it
 
 Requirements: macOS 15+, Xcode with Swift 6, and at least one of the `claude` CLI, the `codex` CLI or Ollama.
