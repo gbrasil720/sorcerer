@@ -165,6 +165,27 @@ When a round runs on an external provider, only what that round needs is sent to
 exported with their full history, or as a fresh scenario (same question, context and people, no history)
 for someone else to run.
 
+## Install
+
+1. Download **[Sorcerer.dmg](https://github.com/gbrasil720/sorcerer/releases/latest/download/Sorcerer.dmg)**
+   from the [latest release](https://github.com/gbrasil720/sorcerer/releases/latest). It's a universal app
+   (Apple silicon and Intel) for macOS 15 or later.
+2. Open the DMG and drag **Sorcerer** into **Applications**.
+3. Install at least one AI tool and sign in: the `claude` CLI, the `codex` CLI, or [Ollama](https://ollama.com).
+
+**First launch.** Sorcerer is free and isn't signed with a paid Apple developer account, so macOS stops it
+the first time with *"Apple could not verify Sorcerer…"*. To open it anyway:
+
+- open Sorcerer once, then go to **System Settings › Privacy & Security**, scroll down and click
+  **Open Anyway** next to the message about Sorcerer, **or**
+- run this once in Terminal:
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/Sorcerer.app
+  ```
+
+You only do this once. If you'd rather not trust a download, [build it yourself](#build-it): it's one command.
+
 ## Build it
 
 Requirements: macOS 15+, Xcode with Swift 6, and at least one of the `claude` CLI, the `codex` CLI or Ollama.
@@ -175,7 +196,11 @@ swift run                                   # run in development
 swift test                                  # engine, parsing, navigation and safety tests
 SORCERER_LIVE=claude swift test             # also play a real round against your CLI
 ./bundle.sh                                 # build Sorcerer.app (with icon) next to the script
+UNIVERSAL=1 VERSION=0.1.0 ./dmg.sh          # universal, ad-hoc signed Sorcerer.dmg, like the releases
 ```
+
+Releases are built by [`.github/workflows/release.yml`](.github/workflows/release.yml): push a tag like
+`v0.2.0` and it tests, builds the DMG and publishes it.
 
 ## Repository
 
