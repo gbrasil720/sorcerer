@@ -130,6 +130,30 @@ struct GraphView: View {
                 }
                 .card(padding: 18)
 
+                if let acts = experiment.actions, !(branch.actions ?? []).isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Caps("actions by round")
+                            Spacer()
+                            Text("people whose latest action it is").font(.mono(10)).foregroundStyle(Color.muted)
+                        }
+                        countChart(Engine.actionSeries(branch, acts).map { ($0.act, $0.counts.enumerated().map { ($0.offset, $0.element) }) })
+                            .frame(height: 200)
+                    }
+                    .card(padding: 18)
+                }
+                ForEach(pollSeries, id: \.question) { s in
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Caps("poll · \(s.question)")
+                            Spacer()
+                            Text("asked \(s.runs) times").font(.mono(10)).foregroundStyle(Color.muted)
+                        }
+                        countChart(s.lines).frame(height: 180)
+                    }
+                    .card(padding: 18)
+                }
+
                 VStack(alignment: .leading, spacing: 10) {
                     Caps("who gets replies · influence")
                     ForEach(handles.sorted { (replies[$0] ?? 0) > (replies[$1] ?? 0) }, id: \.self) { h in
@@ -156,6 +180,56 @@ struct GraphView: View {
     }
 
     private func color(_ i: Int) -> Color { Color(hex: Self.palette[i % Self.palette.count]) }
+
+    /// Questions asked more than once, as one line per option: how many picked it each time.
+    private var pollSeries: [(question: String, runs: Int, lines: [(String, [(Int, Int)])])] {
+        Dictionary(grouping: branch.polls ?? [], by: \.question).filter { $0.value.count > 1 }
+            .sorted { $0.key < $1.key }
+            .map { q, runs in
+                let sorted = runs.sorted { $0.round < $1.round }
+                let options = sorted.last?.options ?? []
+                return (q, runs.count, options.map { o in (o, sorted.map { ($0.round, $0.count(o)) }) })
+            }
+    }
+
+    /// One plotted count. Precomputed so the chart body stays simple enough for every Swift compiler.
+    private struct Count: Identifiable {
+        var series: String
+        var round: Int
+        var n: Int
+        var color: Color
+        var id: String { "\(series)-\(round)" }
+    }
+
+    private func countChart(_ lines: [(String, [(Int, Int)])]) -> some View {
+        let pts = lines.enumerated().flatMap { i, line in line.1.map { Count(series: line.0, round: $0.0, n: $0.1, color: color(i)) } }
+        let top = max(1, pts.map(\.n).max() ?? 1)
+        return VStack(alignment: .leading, spacing: 8) {
+            Chart(pts) { p in
+                LineMark(x: .value("round", p.round), y: .value("people", p.n), series: .value("what", p.series))
+                    .foregroundStyle(p.color)
+                    .interpolationMethod(.stepEnd)
+                PointMark(x: .value("round", p.round), y: .value("people", p.n))
+                    .foregroundStyle(p.color).symbolSize(16)
+            }
+            .chartYScale(domain: 0...top)
+            .chartXAxis { roundAxis(max(1, branch.round)) }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: Array(0...top)) { v in
+                    AxisGridLine().foregroundStyle(Color.line)
+                    AxisValueLabel { Text("\(v.as(Int.self) ?? 0)").font(.mono(10)).foregroundStyle(Color.muted) }
+                }
+            }
+            FlowLayout(spacing: 12) {
+                ForEach(Array(lines.enumerated()), id: \.offset) { i, line in
+                    HStack(spacing: 6) {
+                        Circle().fill(color(i)).frame(width: 8, height: 8)
+                        Text("\(line.0) · \(line.1.last?.1 ?? 0)").font(.mono(10))
+                    }
+                }
+            }
+        }
+    }
 
     /// One plotted point. Precomputed so the chart body stays simple enough for every Swift compiler.
     private struct Point: Identifiable {
