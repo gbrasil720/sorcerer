@@ -243,6 +243,36 @@ The web stack was scaffolded with [kubojs](https://github.com/albuquerquesz/kubo
 Drizzle, Turborepo, Biome). Database, GetMonitor and AraraHQ setup, plus every script, are in
 [docs/web-stack.md](docs/web-stack.md).
 
+## FAQ
+
+**What is Sorcerer?**
+A free, open-source macOS app that simulates communities of AI agents. You ask a "what if…?" question and
+watch a small world of characters react, argue and change their minds round by round.
+
+**Does it cost anything or need an API key?**
+No. Sorcerer is free and has no account or server. It uses the AI tools you're already signed in to:
+the `claude` CLI, the `codex` CLI (ChatGPT) or a local model in Ollama.
+
+**Which AI models does it support?**
+Claude (Haiku, Sonnet, Opus) through Claude Code, any model your ChatGPT plan offers through Codex, and any
+local Ollama model. You can pick a different one for characters, reports and chats.
+
+**Is my data private?**
+Everything is stored as plain JSON in `~/Sorcerer` on your Mac. When a round runs on Claude or ChatGPT, only
+what that round needs is sent to that provider; with Ollama nothing leaves your Mac. `.env` files, keys and
+credentials are never read.
+
+**How is it different from MiroFish?**
+Sorcerer is inspired by [MiroFish](https://github.com/666ghj/MiroFish) but is a separate implementation: a
+native Mac app instead of a web service, it runs on your existing subscriptions, and it's aimed at curiosity
+and fun rather than forecasting.
+
+**Can it predict what real people will do?**
+No. It surfaces possible reactions, objections and consequences to explore, not evidence about the real world.
+
+**Does it run on Windows or Linux?**
+Not today. It's a native SwiftUI app for macOS 15 or later (Apple silicon and Intel).
+
 ## Acknowledgements
 
 Inspired by [MiroFish](https://github.com/666ghj/MiroFish). Sorcerer is a separate, from-scratch
