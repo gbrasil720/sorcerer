@@ -49,4 +49,4 @@ jobs:
             apps/macos/Sorcerer.dmg apps/macos/Sorcerer.dmg.sha256 \
             --title "Sorcerer $GITHUB_REF_NAME" \
             --generate-notes \
-            --notes "Universal (Apple silicon + Intel), macOS 15 or later. First launch: see https://github.com/${{ github.repository }}#install"
+            --notes "Universal (Apple silicon + Intel), macOS 15 or later. Install or update with \`curl -fsSL https://sorcererapp.dev/install.sh | sh\`, or download Sorcerer.dmg below (first launch: https://github.com/${{ github.repository }}#install). From 0.2.0 on, Sorcerer also updates itself."
