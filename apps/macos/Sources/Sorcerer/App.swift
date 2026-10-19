@@ -73,6 +73,8 @@ struct SorcererCommands: Commands {
                 .keyboardShortcut(.rightArrow).disabled(!ready || store.busy != nil)
             Button("Inject an Event…") { store.go(.feed); store.focusInject += 1 }
                 .keyboardShortcut("e").disabled(!ready)
+            Button("Ask Everyone…") { store.go(.feed); store.focusPoll += 1 }
+                .keyboardShortcut("p").disabled(!ready || store.busy != nil)
             Button("Fork This Moment") { store.fork() }
                 .keyboardShortcut("f", modifiers: [.command, .shift]).disabled(!ready)
             Divider()
