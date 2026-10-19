@@ -100,28 +100,7 @@ struct FeedScreen: View {
                         .disabled(store.busy != nil)
                         .card(.line, dashed: true)
                     }
-                    ForEach((latestOnly ? max(1, b.round) : 1)..<(b.round + 2), id: \.self) { r in
-                        let events = b.events.filter { $0.round == r }
-                        let posts = b.posts.filter { $0.round == r && (who == nil || $0.author == who) }
-                        let acts = (b.actions ?? []).filter { $0.round == r && (who == nil || $0.who == who) }
-                        if !events.isEmpty || !posts.isEmpty || !acts.isEmpty {
-                            HStack(spacing: 8) {
-                                Rectangle().fill(Color.line).frame(width: 18, height: 1)
-                                Text("round \(r)").font(.mono(10)).foregroundStyle(Color.muted)
-                                Rectangle().fill(Color.line).frame(height: 1)
-                            }
-                            .padding(.top, 8)
-                        }
-                        ForEach(events) { ev in
-                            Text("⚡ event · injected by you — \(ev.text)\(r > b.round ? "  (next round)" : "")")
-                                .font(.mono(11)).foregroundStyle(Color.ember)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .card(.ember, dashed: true)
-                        }
-                        ForEach(posts) { post in PostCard(post: post, replies: b.posts.filter { $0.replyToPost == post.id }.count).id(post.id) }
-                        ForEach(acts) { ActionLine(action: $0) }
-                        ForEach((b.polls ?? []).filter { $0.round == r }) { PollCard(poll: $0) }
-                    }
+                    ForEach((latestOnly ? max(1, b.round) : 1)..<(b.round + 2), id: \.self) { r in roundSection(r, b) }
                     if let live = store.live, live.branch == b.id, store.replay == nil {
                         LiveRoundView(live: live, branch: b)
                     }
@@ -133,15 +112,7 @@ struct FeedScreen: View {
                 .padding(.horizontal, 18).padding(.bottom, 18)
             }
             .defaultScrollAnchor(.bottom)
-            .onChange(of: b.posts.count) { withAnimation { proxy.scrollTo("end") } }
-            .onChange(of: store.replay) { withAnimation { proxy.scrollTo("end") } }
-            // Follow the live round as it grows.
-            .onChange(of: store.live?.partial.done.count) { withAnimation { proxy.scrollTo("end") } }
-            .onChange(of: store.live?.partial.typing) { withAnimation { proxy.scrollTo("end") } }
-            .onChange(of: store.live?.round) { withAnimation { proxy.scrollTo("end") } }
-            .onChange(of: store.livePoll?.started) { withAnimation { proxy.scrollTo("end") } }
-            .onChange(of: store.livePoll?.partial.done.count) { withAnimation { proxy.scrollTo("end") } }
-            .onChange(of: store.livePoll?.partial.typing) { withAnimation { proxy.scrollTo("end") } }
+            .modifier(FollowLive(proxy: proxy, posts: b.posts.count))
             .task(id: store.focusPost) {
                 // Wait a beat so the lazy stack has laid out before jumping to a cited post.
                 guard let f = store.focusPost else { return }
@@ -150,6 +121,31 @@ struct FeedScreen: View {
             }
             .onDisappear { store.focusPost = nil }
         }
+    }
+
+    /// One round of the feed: its divider, events, posts, actions and polls.
+    @ViewBuilder private func roundSection(_ r: Int, _ b: Branch) -> some View {
+        let events = b.events.filter { $0.round == r }
+        let posts = b.posts.filter { $0.round == r && (who == nil || $0.author == who) }
+        let acts = (b.actions ?? []).filter { $0.round == r && (who == nil || $0.who == who) }
+        let polls = (b.polls ?? []).filter { $0.round == r }
+        if !events.isEmpty || !posts.isEmpty || !acts.isEmpty {
+            HStack(spacing: 8) {
+                Rectangle().fill(Color.line).frame(width: 18, height: 1)
+                Text("round \(r)").font(.mono(10)).foregroundStyle(Color.muted)
+                Rectangle().fill(Color.line).frame(height: 1)
+            }
+            .padding(.top, 8)
+        }
+        ForEach(events) { ev in
+            Text("⚡ event · injected by you — \(ev.text)\(r > b.round ? "  (next round)" : "")")
+                .font(.mono(11)).foregroundStyle(Color.ember)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .card(.ember, dashed: true)
+        }
+        ForEach(posts) { post in PostCard(post: post, replies: b.posts.filter { $0.replyToPost == post.id }.count).id(post.id) }
+        ForEach(acts) { ActionLine(action: $0) }
+        ForEach(polls) { PollCard(poll: $0) }
     }
 
     private func injectBar(_ b: Branch) -> some View {
@@ -408,10 +404,19 @@ struct WorldPanel: View {
         return CGPoint(x: i % 3 * 96 + h % 14, y: i / 3 * 40 + h / 14 % 10 + 8)
     }
 
+    /// Who's speaking: the live round's writers, or whoever posted in the latest round.
+    private func talkers() -> Set<String> {
+        if let live = store.live, live.branch == branch.id {
+            var names: [String] = live.partial.done.map(\.author)
+            if let t = live.partial.typing { names.append(t) }
+            return Set(names)
+        }
+        let latest: [Post] = branch.posts.filter { $0.round == branch.round }
+        return Set(latest.map(\.author))
+    }
+
     var body: some View {
-        let live = store.live?.branch == branch.id ? store.live : nil
-        let talking = live.map { Set($0.partial.done.map(\.author) + [$0.partial.typing].compactMap { $0 }) }
-            ?? Set(branch.posts.filter { $0.round == branch.round }.map(\.author))
+        let talking = talkers()
         let away = Engine.away(branch)
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -606,6 +611,28 @@ struct UsageBlock: View {
 
 /// The round being written: finished posts appear one by one, the one in progress types out,
 /// and before anything arrives the room is visibly "reading".
+/// Keeps the feed scrolled to the end while a round or a poll streams in.
+private struct FollowLive: ViewModifier {
+    @Environment(Store.self) private var store
+    var proxy: ScrollViewProxy
+    var posts: Int
+
+    func body(content: Content) -> some View {
+        let round: some View = content
+            .onChange(of: posts) { follow() }
+            .onChange(of: store.replay) { follow() }
+            .onChange(of: store.live?.partial.done.count) { follow() }
+            .onChange(of: store.live?.partial.typing) { follow() }
+            .onChange(of: store.live?.round) { follow() }
+        return round
+            .onChange(of: store.livePoll?.started) { follow() }
+            .onChange(of: store.livePoll?.partial.done.count) { follow() }
+            .onChange(of: store.livePoll?.partial.typing) { follow() }
+    }
+
+    private func follow() { withAnimation { proxy.scrollTo("end") } }
+}
+
 /// A poll the moment it's sent: the question, live bars, answers arriving one by one and who's answering now.
 struct LivePollCard: View {
     var poll: LivePoll
