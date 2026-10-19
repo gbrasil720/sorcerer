@@ -13,6 +13,8 @@ const DOWNLOAD_URL = `${GITHUB_URL}/releases/latest/download/Sorcerer.dmg`;
 const DOCS_URL = `${GITHUB_URL}#readme`;
 const INSTALL_URL = `${GITHUB_URL}#install`;
 const CHANGELOG_URL = `${GITHUB_URL}/releases`;
+// Downloading with curl skips the quarantine flag that makes macOS block unsigned apps.
+const INSTALL_CMD = "curl -fsSL https://sorcererapp.dev/install.sh | sh";
 
 /** Live star count from GitHub; null until it loads (or if the API is unreachable). */
 function useStars() {
@@ -64,6 +66,30 @@ function Eyebrow({ n, children }: { n: string; children: string }) {
     <p className="font-mono text-ember text-xs">
       — {n} / {children}
     </p>
+  );
+}
+
+/** The one-line installer with a copy button. */
+function InstallCommand() {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex max-w-full items-center border border-line bg-panel font-mono text-sm">
+      <code className="overflow-x-auto whitespace-nowrap px-4 py-3">
+        <span className="select-none text-ember">$ </span>
+        {INSTALL_CMD}
+      </code>
+      <button
+        type="button"
+        onClick={() => {
+          navigator.clipboard.writeText(INSTALL_CMD);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+        className="shrink-0 self-stretch border-line border-l px-4 text-muted transition-colors hover:text-paper"
+      >
+        {copied ? "copied" : "copy"}
+      </button>
+    </div>
   );
 }
 
@@ -408,19 +434,24 @@ function Hero() {
           personalities, goals, relationships and memory, drop in a “what if…?”,
           and watch opinions form, collide and spread — round by round.
         </p>
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Btn href={DOWNLOAD_URL} primary>
-            ↓ download for macOS
-          </Btn>
-          <Btn href={GITHUB_URL}>★ star on GitHub</Btn>
-          <Btn href={DOCS_URL}>read the docs →</Btn>
+        <div className="mt-7">
+          <p className="mb-2 font-mono text-muted text-xs">
+            install in Terminal, opens right away:
+          </p>
+          <InstallCommand />
         </div>
-        <p className="mt-7 font-mono text-muted text-xs">
-          free · macOS 15+ · Apple silicon &amp; Intel —{" "}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Btn href={DOWNLOAD_URL}>↓ or download the .dmg</Btn>
+          <Btn href={GITHUB_URL}>★ star on GitHub</Btn>
+        </div>
+        <p className="mt-6 max-w-[560px] font-mono text-muted text-xs leading-5">
+          free · macOS 15+ · Apple silicon &amp; Intel. Using the .dmg? macOS
+          blocks it once because Sorcerer isn't signed with a paid Apple
+          account: open it, then System Settings › Privacy &amp; Security › Open
+          Anyway.{" "}
           <a href={INSTALL_URL} className="text-paper underline">
-            first launch?
-          </a>{" "}
-          — runs on your machine, with your AI subscriptions
+            details
+          </a>
         </p>
       </div>
       <World />
@@ -1106,21 +1137,19 @@ function FinalCta() {
       <h2 className="mt-8 font-medium text-4xl tracking-tight sm:text-5xl">
         Ask better questions before you act.
       </h2>
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Btn href={DOWNLOAD_URL} primary>
-          ↓ download for macOS
-        </Btn>
+      <div className="mt-8">
+        <InstallCommand />
+      </div>
+      <div className="mt-4 flex flex-wrap justify-center gap-3">
+        <Btn href={DOWNLOAD_URL}>↓ or download the .dmg</Btn>
         <Btn href={GITHUB_URL}>★ star on GitHub</Btn>
         <Btn href={INSTALL_URL}>how to install →</Btn>
       </div>
       <p className="mt-6 max-w-[520px] font-mono text-muted text-xs leading-5">
-        Sorcerer isn't signed with a paid Apple developer account, so macOS asks
-        once before the first launch. Open it, then System Settings › Privacy
-        &amp; Security › Open Anyway.
+        The .dmg isn't signed with a paid Apple developer account, so macOS
+        blocks it once: open it, then System Settings › Privacy &amp; Security ›
+        Open Anyway. The Terminal command skips that step.
       </p>
-      <code className="mt-8 border border-line px-4 py-3 font-mono text-sm">
-        <span className="text-ember">$</span> git clone {GITHUB_URL}
-      </code>
     </section>
   );
 }
