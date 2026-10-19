@@ -53,6 +53,8 @@ final class Store {
     var settingsPane = SettingsPane.providers
     /// Bumped to put the cursor in the feed's inject field (⌘E).
     var focusInject = 0
+    /// Round being replayed in the current branch; nil = the present.
+    var replay: Int?
 
     static let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Sorcerer")
     private static let worlds = root.appendingPathComponent("experiments")
@@ -87,6 +89,11 @@ final class Store {
 
     var experiment: Experiment? { experiments.first { $0.id == selected } }
     var branch: Branch? { experiment?.branches.first { $0.id == branchID } }
+    /// The current branch as of the replayed round, or as it is now.
+    var shown: Branch? {
+        guard let b = branch else { return nil }
+        return replay.map { Engine.rewind(b, to: $0, start: experiment?.cast) } ?? b
+    }
 
     // MARK: navigation
 
@@ -116,6 +123,7 @@ final class Store {
     }
 
     private func apply(_ p: Place) {
+        if p.experiment != selected || p.branch != branchID { replay = nil }
         selected = p.experiment
         branchID = p.branch
         route = p.route
@@ -289,6 +297,7 @@ final class Store {
     }
 
     func step() async {
+        replay = nil
         guard let e = experiment, let b = branch else { return }
         let branchID = b.id
         live = LiveRound(branch: branchID, round: b.round + 1, streams: settings.characters != .codex)
@@ -306,6 +315,7 @@ final class Store {
 
     func run() {
         guard !running else { return }
+        replay = nil
         running = true
         pausedUntil = nil
         Task {
@@ -378,12 +388,14 @@ final class Store {
     func inject(_ text: String) {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
+        replay = nil
         mutateBranch { $0.events.append(WorldEvent(round: $0.round + 1, text: t)) }
     }
 
-    /// Fork the current moment: same people, same memories, a new path.
+    /// Fork the round on screen (the replayed one, or now): same people, same memories up to
+    /// that round, a new path from there.
     func fork() {
-        guard let b = branch, let e = experiment else { return }
+        guard let b = shown, let e = experiment else { return }
         let letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".map(String.init)
         var copy = b
         copy.id = UUID()
