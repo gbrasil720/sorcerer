@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in Sorcerer or the landing page doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please don't paste API keys, tokens or private experiment content.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - macOS app
+        - Landing page (sorcererapp.dev)
+        - Build / release
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+      placeholder: |
+        1. Created an experiment from the "pricing change" template
+        2. Pressed ⌘R
+        3. Expected round 1 to start; instead the feed stayed on "reading…"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Sorcerer version
+      description: Sorcerer › About, or Settings › About.
+      placeholder: "0.1.0"
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and chip
+      placeholder: "macOS 15.4, Apple M2"
+  - type: dropdown
+    id: provider
+    attributes:
+      label: AI provider
+      multiple: true
+      options:
+        - Claude (claude CLI)
+        - ChatGPT (codex CLI)
+        - Ollama
+        - Not related to a provider
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshots or logs
+      description: Drag images here, or paste any error text.

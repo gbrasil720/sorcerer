@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Install help and first launch
+    url: https://github.com/gbrasil720/sorcerer#install
+    about: '"Apple could not verify Sorcerer"? The install guide shows how to open it the first time.'
+  - name: FAQ
+    url: https://github.com/gbrasil720/sorcerer#faq
+    about: Pricing, supported models, privacy and more.
