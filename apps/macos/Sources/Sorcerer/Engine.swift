@@ -94,9 +94,57 @@ enum Engine {
             var agree: Int?
             var disagree: Int?
         }
+        struct A: Decodable {
+            var `do`: String
+            var why: String?
+            /// For invites: who they bring in, in a few words.
+            var who: String?
+        }
         var posts: [P]
         var memories: [String: String]?
         var reactions: [String: Reaction]?
+        var actions: [String: A]?
+    }
+
+    // MARK: actions
+
+    /// Built in to every experiment with actions: leaving, coming back and bringing someone in.
+    static let leave = "leave", comeBack = "come back", invite = "invite"
+
+    /// Someone a character invited this round, still to be summoned.
+    struct Invite: Equatable {
+        var by: String
+        var who: String
+    }
+
+    /// Who has left and not come back.
+    static func away(_ b: Branch) -> Set<String> {
+        var out = Set<String>()
+        for a in b.actions ?? [] {
+            if a.act == leave { out.insert(a.who) } else if a.act == comeBack { out.remove(a.who) }
+        }
+        return out
+    }
+
+    /// For each action the experiment defines, how many people's latest action it is
+    /// (so "upgrade" then "cancel" counts once, as cancel), in the experiment's order.
+    static func tally(_ b: Branch, _ acts: [String]) -> [(act: String, count: Int)] {
+        var latest: [String: String] = [:]
+        for a in b.actions ?? [] where acts.contains(a.act) { latest[a.who] = a.act }
+        return acts.map { act in (act, latest.values.filter { $0 == act }.count) }
+    }
+
+    private static func actionsPrompt(_ e: Experiment, _ b: Branch) -> String {
+        guard let acts = e.actions else { return "" }
+        let gone = away(b).sorted()
+        let all = acts + [leave, comeBack, invite]
+        return """
+
+        Besides talking, characters can act. Allowed actions: \(all.map { "\"\($0)\"" }.joined(separator: ", ")).
+        Only include someone in "actions" when this round changes what they do; never repeat what they last did. Most rounds only one or two people act.
+        "\(leave)" means they stop taking part; "\(comeBack)" brings back someone who left; "\(invite)" brings one new person in (say who in "who").
+        \(gone.isEmpty ? "" : "These people have left and don't post unless they come back: \(gone.joined(separator: ", ")).")
+        """
     }
 
     /// Stable id of a post inside its branch: "B7" = seventh post of branch B.
@@ -104,8 +152,10 @@ enum Engine {
 
     static func roundPrompt(_ e: Experiment, _ b: Branch) -> String {
         let next = b.round + 1
+        var did: [String: String] = [:]
+        for a in b.actions ?? [] { did[a.who] = "r\(a.round) \(a.act)" }
         let cast = b.characters.map {
-            "- \($0.handle) — \($0.role) — mood \(String(format: "%.1f", $0.mood)) — ties: \(($0.ties ?? [:]).map { "\($0.key) (\($0.value))" }.sorted().joined(separator: ", ")) — remembers: \($0.memories.suffix(4).joined(separator: "; "))"
+            "- \($0.handle) — \($0.role) — mood \(String(format: "%.1f", $0.mood)) — ties: \(($0.ties ?? [:]).map { "\($0.key) (\($0.value))" }.sorted().joined(separator: ", ")) — remembers: \($0.memories.suffix(4).joined(separator: "; "))\(did[$0.handle].map { " — last did: \($0)" } ?? "")"
         }.joined(separator: "\n")
         let start = max(0, b.posts.count - 24)
         let feed = b.posts[start...].enumerated().map { i, p in
@@ -132,9 +182,9 @@ enum Engine {
         Write this round: 2 to \(min(b.characters.count, 6)) short messages fitting a \(place), 1-2 casual, specific sentences each.
         Characters may reply to earlier posts, most often from people they have ties with. Not everyone posts every round.
         Opinions shift gradually, react to events, and spread along ties.
-        Characters who stay quiet still react: count how many agree or disagree with recent posts.
+        Characters who stay quiet still react: count how many agree or disagree with recent posts.\(actionsPrompt(e, b))
         Reply with ONLY JSON, no prose:
-        {"posts":[{"author":"handle","replyTo":"post id it answers, e.g. A3, or null","text":"...","mood":0.0}],"reactions":{"A3":{"agree":2,"disagree":1}},"memories":{"handle":"one short line this character will remember"}}
+        {"posts":[{"author":"handle","replyTo":"post id it answers, e.g. A3, or null","text":"...","mood":0.0}],"reactions":{"A3":{"agree":2,"disagree":1}},"memories":{"handle":"one short line this character will remember"}\(e.actions == nil ? "" : #","actions":{"handle":{"do":"one allowed action","why":"short reason in their voice","who":"only for invite"}}"#)}
         mood is the author's attitude toward the hypothesis after posting, -1..1.
         """
     }
@@ -263,10 +313,31 @@ enum Engine {
     }
 
     /// Applies a model's round to the branch. Unknown authors are dropped, moods clamped.
-    static func apply(_ text: String, to b: inout Branch) throws {
+    /// Applies a round; returns the people characters invited, for the caller to summon.
+    @discardableResult
+    static func apply(_ text: String, to b: inout Branch, actions acts: [String]? = nil) throws -> [Invite] {
         let out = try json(RoundOut.self, from: text)
         let next = b.round + 1
         let known = Set(b.characters.map(\.handle))
+        let goneBefore = away(b)
+        var invites: [Invite] = []
+        if let acts {
+            let allowed = Set((acts + [leave, comeBack, invite]).map { $0.lowercased() })
+            for (raw, a) in (out.actions ?? [:]).sorted(by: { $0.key < $1.key }) {
+                let who = handle(raw), act = a.do.trimmingCharacters(in: .whitespaces)
+                guard known.contains(who), allowed.contains(act.lowercased()) else { continue }
+                let name = acts.first { $0.lowercased() == act.lowercased() } ?? act.lowercased()
+                // Someone who left can only come back; only someone who left can come back.
+                if goneBefore.contains(who) != (name == comeBack) { continue }
+                if name == invite {
+                    guard invites.isEmpty, let w = a.who, !w.isEmpty else { continue }
+                    invites.append(Invite(by: who, who: w))
+                }
+                b.actions = (b.actions ?? []) + [Action(round: next, who: who, act: name, why: a.why ?? "")]
+            }
+        }
+        // People who were away all round stay silent; a goodbye post the round they leave is fine.
+        let silent = goneBefore.intersection(away(b))
         // Reactions point at posts that already existed, so resolve them before appending.
         for (id, r) in out.reactions ?? [:] {
             guard let i = index(of: id, in: b) else { continue }
@@ -275,7 +346,7 @@ enum Engine {
         }
         for p in out.posts {
             let author = handle(p.author)
-            guard known.contains(author), !p.text.isEmpty else { continue }
+            guard known.contains(author), !silent.contains(author), !p.text.isEmpty else { continue }
             let mood = clamp(p.mood ?? b.characters.first { $0.handle == author }!.mood)
             // replyTo is a post id ("A3") or, from older prompts and sloppier models, a handle.
             var post = Post(round: next, author: author, text: p.text, mood: mood)
@@ -298,6 +369,27 @@ enum Engine {
         if b.moodByRound.isEmpty { b.moodByRound.append(averageMood(b)) }
         b.round = next
         b.moodByRound.append(averageMood(b))
+        return invites
+    }
+
+    static func suggestActionsPrompt(hypothesis: String, context: String) -> String {
+        """
+        Sorcerer simulates a small community reacting to: What if \(hypothesis)
+        Context: \(context.prefix(2000))
+        List 3 to 5 things a person in this community could DO about it (not say), as short verbs the outcome can be counted by.
+        Examples: "upgrade to Pro", "cancel", "recommend it", "sign the petition", "move away".
+        Don't include leaving, coming back or inviting someone; those always exist.
+        Reply with ONLY JSON: {"actions":["..."]}
+        """
+    }
+
+    static func parseActions(_ text: String) throws -> [String] {
+        struct Out: Decodable { var actions: [String] }
+        var seen = Set<String>()
+        return try json(Out.self, from: text).actions
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+            .filter { !$0.isEmpty && ![leave, comeBack, invite].contains($0) && seen.insert($0).inserted }
+            .prefix(6).map { $0 }
     }
 
     private static func index(of ref: String, in b: Branch) -> Int? {
@@ -333,6 +425,8 @@ enum Engine {
         out.posts = b.posts.filter { $0.round <= n }
         out.events = b.events.filter { $0.round <= n }
         out.moodByRound = Array(b.moodByRound.prefix(n + 1))
+        out.actions = b.actions?.filter { $0.round <= n }
+        out.characters = b.characters.filter { ($0.joined ?? 0) <= n }
         // ponytail: agree/disagree counts are totals, so reactions from later rounds stay on old posts;
         // store reactions per round if replays need exact counts.
         for i in out.characters.indices {

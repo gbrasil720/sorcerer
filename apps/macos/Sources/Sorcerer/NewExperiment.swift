@@ -37,6 +37,9 @@ struct NewExperiment: View {
     @State private var temper = 0.5
     @State private var environment = "social feed"
     @State private var rounds = 10
+    @State private var actions: [String] = []
+    @State private var newAction = ""
+    @State private var suggesting = false
     @State private var template: String?
     @State private var community: String?
     @State private var cast: [Persona] = []
@@ -150,7 +153,8 @@ struct NewExperiment: View {
                 if cast.isEmpty { Text("summon or import a community to start").font(.mono(11)).foregroundStyle(Color.muted) }
                 Button("start simulation →") {
                     store.create(hypothesis: hypothesis, context: rawContext, cast: cast, community: community,
-                                 environment: environment, rounds: rounds, sources: sources.map(\.name), brief: brief)
+                                 environment: environment, rounds: rounds, sources: sources.map(\.name), brief: brief,
+                                 actions: actions)
                 }
                 .buttonStyle(SButton(primary: true))
                 .disabled(cast.isEmpty || hypothesis.isEmpty || store.busy != nil)
@@ -224,9 +228,48 @@ struct NewExperiment: View {
                     }
                     .frame(width: 220, alignment: .topLeading).frame(minHeight: 120, alignment: .topLeading).card(padding: 16)
                 }
+                actionsCard
             }
             Spacer(minLength: 0)
         }
+    }
+
+    /// What people can do besides talking; each action becomes a count in the feed and the report.
+    private var actionsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("what people can do · counted round by round").font(.mono(10)).foregroundStyle(Color.muted)
+                Spacer()
+                Button(suggesting ? "suggesting…" : "✦ suggest from the question") {
+                    suggesting = true
+                    Task {
+                        let more = await store.suggestActions(hypothesis: hypothesis, context: context)
+                        actions += more.filter { !actions.contains($0) }
+                        suggesting = false
+                    }
+                }
+                .buttonStyle(SButton()).disabled(hypothesis.isEmpty || suggesting)
+            }
+            FlowLayout {
+                ForEach(actions, id: \.self) { a in
+                    Button { actions.removeAll { $0 == a } } label: { Chip(text: "\(a)  ×") }
+                        .buttonStyle(.plain).help("Remove")
+                }
+                TextField("+ add an action", text: $newAction)
+                    .textFieldStyle(.plain).font(.mono(11)).frame(width: 150)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .overlay(Capsule().stroke(Color.line, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+                    .onSubmit {
+                        let a = newAction.trimmingCharacters(in: .whitespaces).lowercased()
+                        if !a.isEmpty, !actions.contains(a) { actions.append(a) }
+                        newAction = ""
+                    }
+                ForEach([Engine.leave, Engine.comeBack, Engine.invite], id: \.self) { Chip(text: $0, on: false) }
+            }
+            Text("Leaving, coming back and inviting someone are always possible. People who leave stop posting but stay on the map.")
+                .font(.mono(10)).foregroundStyle(Color.muted)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading).card(padding: 16)
     }
 
     private var placeNote: String {
@@ -592,7 +635,7 @@ struct NewExperiment: View {
             .card()
             Caps("ready to start")
             review("question", hypothesis.isEmpty ? nil : hypothesis, .question)
-            review("rules", "\(environment) · \(rounds) rounds", .question)
+            review("rules", "\(environment) · \(rounds) rounds\(actions.isEmpty ? "" : " · " + actions.joined(separator: ", "))", .question)
             review("context", contextSummary, .context)
             review("community", cast.isEmpty ? nil : "\(cast.count) people · \(cast.reduce(0) { $0 + ($1.ties?.count ?? 0) }) ties · \(cast.filter { $0.insider == true }.count) \(cast.filter { $0.insider == true }.count == 1 ? "insider" : "insiders")", .community)
         }
@@ -629,6 +672,7 @@ struct NewExperiment: View {
         archetypes = t.archetypes
         rounds = t.rounds
         environment = t.environment
+        actions = t.actions
         mode = .context
         cast = []
     }

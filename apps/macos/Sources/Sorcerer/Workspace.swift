@@ -98,7 +98,8 @@ struct FeedScreen: View {
                     ForEach((latestOnly ? max(1, b.round) : 1)..<(b.round + 2), id: \.self) { r in
                         let events = b.events.filter { $0.round == r }
                         let posts = b.posts.filter { $0.round == r && (who == nil || $0.author == who) }
-                        if !events.isEmpty || !posts.isEmpty {
+                        let acts = (b.actions ?? []).filter { $0.round == r && (who == nil || $0.who == who) }
+                        if !events.isEmpty || !posts.isEmpty || !acts.isEmpty {
                             HStack(spacing: 8) {
                                 Rectangle().fill(Color.line).frame(width: 18, height: 1)
                                 Text("round \(r)").font(.mono(10)).foregroundStyle(Color.muted)
@@ -113,6 +114,7 @@ struct FeedScreen: View {
                                 .card(.ember, dashed: true)
                         }
                         ForEach(posts) { post in PostCard(post: post, replies: b.posts.filter { $0.replyToPost == post.id }.count).id(post.id) }
+                        ForEach(acts) { ActionLine(action: $0) }
                     }
                     if let live = store.live, live.branch == b.id, store.replay == nil {
                         LiveRoundView(live: live, branch: b)
@@ -226,6 +228,33 @@ struct Timeline: View {
     }
 }
 
+/// "@ada cancelled Pro · 'I'll wait for offline'" between the posts of a round.
+struct ActionLine: View {
+    @Environment(Store.self) private var store
+    var action: Action
+
+    var body: some View {
+        let icon = action.act == Engine.leave ? "←" : action.act == Engine.comeBack ? "↩" : action.act == Engine.invite ? "+" : "◆"
+        HStack(spacing: 10) {
+            Text(icon).font(.mono(12)).foregroundStyle(Color.ember).frame(width: 18)
+            Button { store.go(.character(action.who)) } label: {
+                HStack(spacing: 6) {
+                    Avatar(name: action.who, size: 18)
+                    Text("@\(action.who)").font(.mono(11, .semibold))
+                }
+            }
+            .buttonStyle(.plain)
+            Text(action.act).font(.mono(11, .semibold)).foregroundStyle(Color.ember)
+            if !action.why.isEmpty {
+                Text("“\(action.why)”").font(.display(13, .regular)).foregroundStyle(Color.paper.opacity(0.75)).lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 8)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.ember.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+    }
+}
+
 struct PostCard: View {
     @Environment(Store.self) private var store
     var post: Post
@@ -274,6 +303,7 @@ struct WorldPanel: View {
         let live = store.live?.branch == branch.id ? store.live : nil
         let talking = live.map { Set($0.partial.done.map(\.author) + [$0.partial.typing].compactMap { $0 }) }
             ?? Set(branch.posts.filter { $0.round == branch.round }.map(\.author))
+        let away = Engine.away(branch)
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 if showMap {
@@ -303,6 +333,7 @@ struct WorldPanel: View {
                         Button { store.go(.character(c.handle)) } label: {
                             HStack(spacing: 5) {
                                 Avatar(name: c.handle, size: 18, highlight: talking.contains(c.handle))
+                                    .opacity(away.contains(c.handle) ? 0.35 : 1)
                                 Text(c.handle).font(.mono(10)).foregroundStyle(talking.contains(c.handle) ? Color.paper : Color.muted)
                                     .lineLimit(1).frame(maxWidth: 62, alignment: .leading)
                             }
@@ -322,7 +353,11 @@ struct WorldPanel: View {
                             Avatar(name: c.handle, size: 20)
                             Text(c.handle).font(.mono(11, .semibold)).lineLimit(1).truncationMode(.tail)
                                 .frame(width: 84, alignment: .leading)
-                            MoodBar(mood: c.mood, cells: 14)
+                            if away.contains(c.handle) {
+                                Text("left").font(.mono(10)).foregroundStyle(Color.muted)
+                            } else {
+                                MoodBar(mood: c.mood, cells: 14)
+                            }
                             Spacer()
                             Text(signed(c.mood)).font(.mono(11)).foregroundStyle(c.mood < 0 ? Color.ember : Color.paper)
                         }
@@ -331,6 +366,10 @@ struct WorldPanel: View {
                     .buttonStyle(.plain)
                 }
 
+                if let acts = store.experiment?.actions {
+                    Rectangle().fill(Color.line).frame(height: 1)
+                    ActionTally(branch: branch, acts: acts)
+                }
                 Rectangle().fill(Color.line).frame(height: 1)
                 Caps("timeline")
                 if let e = store.experiment { BranchTree(experiment: e) }
@@ -344,6 +383,42 @@ struct WorldPanel: View {
             .padding(16)
         }
         .background(Color.sidebar)
+    }
+}
+
+/// What people did so far: for each action, how many people it's the latest thing they did.
+struct ActionTally: View {
+    var branch: Branch
+    var acts: [String]
+
+    var body: some View {
+        let tally = Engine.tally(branch, acts)
+        let present = branch.characters.count - Engine.away(branch).count
+        let invited = branch.characters.filter { $0.joined != nil }.count
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Caps("actions")
+                Spacer()
+                Text("of \(branch.characters.count) people").font(.mono(10)).foregroundStyle(Color.muted)
+            }
+            if (branch.actions ?? []).isEmpty {
+                Text("· nobody has acted yet").font(.mono(10)).foregroundStyle(Color.muted)
+            }
+            ForEach(tally, id: \.act) { t in row(t.act, t.count) }
+            row("still here", present, accent: false)
+            if invited > 0 { row("invited in", invited, accent: false) }
+        }
+    }
+
+    private func row(_ label: String, _ n: Int, accent: Bool = true) -> some View {
+        HStack(spacing: 8) {
+            Text(label).font(.mono(11)).lineLimit(1).frame(width: 120, alignment: .leading)
+            BlockBar(filled: Int((Double(n) / Double(max(1, branch.characters.count)) * 10).rounded()), cells: 10,
+                     color: accent ? .ember : .paper)
+                .opacity(accent || n > 0 ? 1 : 0.5)
+            Spacer()
+            Text("\(n)").font(.mono(11)).foregroundStyle(n > 0 && accent ? Color.ember : Color.paper)
+        }
     }
 }
 

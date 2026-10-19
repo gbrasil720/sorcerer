@@ -11,6 +11,7 @@ struct WorldView: View {
         let latest = branch.posts.filter { $0.round == branch.round }
         let said = Dictionary(latest.map { ($0.author, $0.text) }, uniquingKeysWith: { _, last in last })
         let events = branch.events.filter { $0.round == branch.round || $0.round == branch.round + 1 }
+        let away = Engine.away(branch)
 
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -52,6 +53,7 @@ struct WorldView: View {
                             Button { store.go(.character(c.handle)) } label: {
                                 VStack(spacing: 4) {
                                     Avatar(name: c.handle, size: 40, highlight: said[c.handle] != nil)
+                                        .opacity(away.contains(c.handle) ? 0.35 : 1)
                                     Text("@\(c.handle) \(signed(c.mood))").font(.mono(10))
                                         .foregroundStyle(said[c.handle] != nil ? Color.paper : Color.muted)
                                 }

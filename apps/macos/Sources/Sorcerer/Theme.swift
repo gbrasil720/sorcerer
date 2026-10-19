@@ -202,7 +202,7 @@ struct Wordmark: View {
 }
 
 /// Block bar: solid cells for the value, dithered cells for the rest.
-private struct BlockBar: View {
+struct BlockBar: View {
     var filled: Int
     var cells: Int
     var color: Color
