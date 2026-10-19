@@ -121,6 +121,19 @@ revolves around.
   <img src="docs/screenshots/graph.png" alt="Graph view: mood of each AI agent round by round" width="49%">
 </p>
 
+### Actions
+
+Characters don't only talk: they act. Each experiment has a list of things people can do (templates bring
+their own, like *upgrade to Pro* or *cancel Pro*, and the AI can suggest more from your question), plus
+**leave**, **come back** and **invite**, which are always there. Actions show up in the feed with the reason in
+the character's own words, and a live tally counts how many people did what. People who leave stop posting
+but stay on the map; whoever they invite joins the world tied to them.
+
+<p align="center">
+  <img src="docs/screenshots/actions.png" alt="Feed with a character switching to a free app and the live action tally" width="49%">
+  <img src="docs/screenshots/new-experiment-actions.png" alt="Picking what people can do when creating an experiment" width="49%">
+</p>
+
 ### Characters
 
 Every character has a profile: personality, interests, goals, ties and memories. Talk to them
