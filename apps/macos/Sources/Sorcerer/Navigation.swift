@@ -32,6 +32,8 @@ struct Workspace: View {
         .ignoresSafeArea()
         .modifier(Exporter())
         .sheet(isPresented: $store.paletteOpen) { Palette() }
+        .sheet(isPresented: Bindable(store.updater).showing) { UpdateSheet() }
+        .task { await store.updater.check(quietly: true) }
     }
 }
 
@@ -280,6 +282,7 @@ struct Sidebar: View {
                 }
             }
             VStack(spacing: 8) {
+                UpdateRow()
                 UsageBlock()
                 UsageBlock.SettingsRow()
             }
@@ -532,5 +535,34 @@ struct Palette: View {
             Item(title: "Settings · storage", detail: "~/Sorcerer") { store.settingsPane = .storage; openSettings() },
         ]
         return items
+    }
+}
+
+/// Shows up at the bottom of the sidebar only when there's a newer Sorcerer (or one waiting to restart).
+struct UpdateRow: View {
+    @Environment(Store.self) private var store
+
+    var body: some View {
+        let u = store.updater
+        let ready = if case .ready = u.phase { true } else { false }
+        if u.available {
+            Button { u.showing = true } label: {
+                HStack(spacing: 8) {
+                    Text(ready ? "↻" : "↑").foregroundStyle(Color.ink)
+                        .frame(width: 18, height: 18).background(Color.ember, in: .rect(cornerRadius: 4))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(ready ? "restart to update" : "update available").font(.mono(11, .semibold))
+                        Text("v\(Updater.current) → v\(u.latest?.version ?? "")").font(.mono(10)).foregroundStyle(Color.muted)
+                    }
+                    Spacer()
+                    Text("›").foregroundStyle(Color.muted)
+                }
+                .padding(10)
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.ember.opacity(0.6)))
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .help("See what's new and update")
+        }
     }
 }

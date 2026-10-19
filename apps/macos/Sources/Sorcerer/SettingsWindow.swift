@@ -426,6 +426,8 @@ private struct StoragePane: View {
 // MARK: about
 
 private struct AboutPane: View {
+    @Environment(Store.self) private var store
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 18) {
@@ -434,6 +436,14 @@ private struct AboutPane: View {
                     Wordmark(size: 4)
                     Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev") · open source · MIT")
                         .font(.mono(11)).foregroundStyle(Color.muted)
+                }
+            }
+            HStack(spacing: 10) {
+                Button(store.updater.available ? "update to v\(store.updater.latest?.version ?? "")…" : "check for updates")
+                    { Task { await store.updater.check() } }
+                    .buttonStyle(SButton(primary: store.updater.available))
+                if store.updater.phase == .upToDate {
+                    Text("you're on the latest version").font(.mono(10)).foregroundStyle(Color.muted)
                 }
             }
             Text("Create a community. Explore a hypothesis. Watch what happens.").font(.display(16))

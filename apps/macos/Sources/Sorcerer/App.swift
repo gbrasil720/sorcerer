@@ -43,6 +43,9 @@ struct SorcererCommands: Commands {
     @Environment(\.openSettings) private var openSettings
 
     var body: some Commands {
+        CommandGroup(after: .appInfo) {
+            Button("Check for Updates…") { Task { await store.updater.check() } }
+        }
         CommandGroup(replacing: .newItem) {
             Button("New Experiment") { store.go(.new) }.keyboardShortcut("n")
             Button("Go to…") { store.paletteOpen = true }.keyboardShortcut("k")

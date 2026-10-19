@@ -2,6 +2,7 @@ import AppKit
 import CryptoKit
 import Foundation
 import Observation
+import SwiftUI
 
 /// Finds a newer Sorcerer on GitHub Releases, downloads it, checks it against the published
 /// checksum and swaps it in on restart. Same files the website's installer uses; no server.
@@ -120,7 +121,12 @@ final class Updater {
             phase = .failed("Couldn't restart: \(error.localizedDescription)")
             return
         }
-        NSApp.terminate(nil)
+        // macOS refuses to quit while a sheet is open, so close it first.
+        showing = false
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            NSApp.terminate(nil)
+        }
     }
 
     /// "0.10.0" is newer than "0.9.1"; missing parts count as 0.
@@ -131,5 +137,114 @@ final class Updater {
             if l != r { return l > r }
         }
         return false
+    }
+}
+
+
+/// What's new, then download → confirm → restart. Opened from the sidebar, the app menu or About.
+struct UpdateSheet: View {
+    @Environment(Store.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        let u = store.updater
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
+                Caps("software update")
+                Spacer()
+                Text("you have v\(Updater.current)").font(.mono(10)).foregroundStyle(Color.muted)
+            }
+            switch u.phase {
+            case .idle, .checking:
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("checking GitHub for a newer Sorcerer…").font(.mono(12)).foregroundStyle(Color.muted)
+                }
+                .frame(maxWidth: .infinity, minHeight: 120)
+            case .upToDate:
+                Text("You're on the latest version.").font(.display(20))
+                Text("Sorcerer v\(Updater.current) is the newest release.").font(.mono(11)).foregroundStyle(Color.muted)
+            case .failed(let why):
+                Text("Update didn't work").font(.display(20))
+                Text(why).font(.mono(11)).foregroundStyle(Color.ember).textSelection(.enabled)
+            case .available, .downloading, .ready:
+                if let r = u.latest {
+                    (Text("Sorcerer ") + Text("v\(r.version)").foregroundStyle(Color.ember) + Text(" is out")).font(.display(22))
+                    let lines = (r.body ?? "").split(whereSeparator: \.isNewline).count
+                    ScrollView { Changelog(text: r.body ?? "").frame(maxWidth: .infinity, alignment: .leading) }
+                        // Short notes stay short; long ones scroll.
+                        .frame(height: min(280, CGFloat(max(lines, 2)) * 26))
+                        .card(padding: 14)
+                }
+            }
+            footer(u)
+        }
+        .padding(24)
+        .frame(width: 560)
+        .background(Color.ink)
+    }
+
+    @ViewBuilder private func footer(_ u: Updater) -> some View {
+        HStack(spacing: 10) {
+            switch u.phase {
+            case .downloading:
+                ProgressView().controlSize(.small)
+                Text("downloading and checking v\(u.latest?.version ?? "")…").font(.mono(11)).foregroundStyle(Color.muted)
+                Spacer()
+            case .ready:
+                Text("Ready. Sorcerer will quit and reopen on v\(u.latest?.version ?? ""). Your experiments are saved.")
+                    .font(.mono(11)).foregroundStyle(Color.paper.opacity(0.85)).fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                Button("later") { dismiss() }.buttonStyle(SButton())
+                Button("restart now") { u.restart() }.buttonStyle(SButton(primary: true)).keyboardShortcut(.defaultAction)
+            case .available:
+                if let r = u.latest { Link("release page ↗", destination: r.html_url).font(.mono(11)).foregroundStyle(Color.muted) }
+                Spacer()
+                Button("not now") { dismiss() }.buttonStyle(SButton())
+                if u.canInstall {
+                    Button("download & install") { Task { await u.download() } }
+                        .buttonStyle(SButton(primary: true)).keyboardShortcut(.defaultAction)
+                } else if let r = u.latest {
+                    // A build run from source, or an app in a folder we can't write to.
+                    Link("download from GitHub ↗", destination: r.html_url).buttonStyle(SButton(primary: true))
+                }
+            case .failed:
+                Spacer()
+                Button("close") { dismiss() }.buttonStyle(SButton())
+                Button("try again") { Task { await u.check() } }.buttonStyle(SButton(primary: true))
+            default:
+                Spacer()
+                Button("close") { dismiss() }.buttonStyle(SButton()).keyboardShortcut(.defaultAction)
+            }
+        }
+    }
+}
+
+/// Release notes as GitHub writes them: "## headings", "* bullets", inline links and bold.
+private struct Changelog: View {
+    var text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(text.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, raw in
+                let line = raw.trimmingCharacters(in: .whitespaces)
+                if line.hasPrefix("#") {
+                    Caps(line.drop { $0 == "#" }.trimmingCharacters(in: .whitespaces)).padding(.top, 6)
+                } else if line.hasPrefix("* ") || line.hasPrefix("- ") {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("·").foregroundStyle(Color.ember)
+                        Text(Self.inline(String(line.dropFirst(2)))).font(.display(13, .regular))
+                    }
+                } else if !line.isEmpty {
+                    Text(Self.inline(line)).font(.mono(11)).foregroundStyle(Color.paper.opacity(0.8))
+                }
+            }
+        }
+        .tint(.ember)
+        .textSelection(.enabled)
+    }
+
+    static func inline(_ s: String) -> AttributedString {
+        (try? AttributedString(markdown: s, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace))) ?? AttributedString(s)
     }
 }
