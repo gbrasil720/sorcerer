@@ -53,6 +53,8 @@ final class Store {
     var settingsPane = SettingsPane.providers
     /// Bumped to put the cursor in the feed's inject field (⌘E).
     var focusInject = 0
+    /// Bumped to open the feed's "ask everyone" composer (⌘P).
+    var focusPoll = 0
     /// Round being replayed in the current branch; nil = the present.
     var replay: Int?
     let updater = Updater()
@@ -313,6 +315,9 @@ final class Store {
             var invites: [Engine.Invite] = []
             try mutateBranch { invites = try Engine.apply(reply, to: &$0, actions: e.actions) }
             for i in invites { await bringIn(i, round: b.round + 1) }
+            if let now = branch {
+                for p in Engine.duePolls(now) { await poll(p.question, options: p.options, open: p.open, every: p.every) }
+            }
         } catch {
             if pausedUntil == nil { self.error = error.localizedDescription }
         }
@@ -388,6 +393,33 @@ final class Store {
         if b.characters.contains(where: { $0.handle == p.handle }) { p.handle += "2" }
         mutateBranch { $0.characters.append(p) }
         go(.character(p.handle))
+    }
+
+    /// Asks everyone still in the world the same question. Off the record by default: nobody remembers it.
+    /// A public poll becomes next round's event and each person remembers their answer.
+    func poll(_ question: String, options: [String], open: Bool = false, every: Int? = nil) async {
+        guard let e = experiment, let b = branch else { return }
+        let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return }
+        replay = nil
+        do {
+            let reply = try await ask(Engine.pollPrompt(e, b, question: q, options: options), settings.characters, "asking everyone…")
+            var p = Poll(round: b.round, question: q, options: options, open: open, every: every)
+            p.answers = try Engine.parsePoll(reply, options: options, in: b)
+            mutateBranch { b in
+                b.polls = (b.polls ?? []) + [p]
+                guard open else { return }
+                let result = options.map { "\($0) \(p.count($0))" }.joined(separator: " · ")
+                b.events.append(WorldEvent(round: b.round + 1, text: "A poll asked everyone \"\(q)\" (\(result))"))
+                for (who, a) in p.answers {
+                    if let i = b.characters.firstIndex(where: { $0.handle == who }) {
+                        b.characters[i].memories = Array((b.characters[i].memories + ["r\(b.round): asked \"\(q)\", I said \(a.pick)"]).suffix(12))
+                    }
+                }
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
 
     /// Summons the person a character invited and ties them to whoever brought them.

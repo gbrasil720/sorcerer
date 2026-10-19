@@ -134,6 +134,15 @@ but stay on the map; whoever they invite joins the world tied to them.
   <img src="docs/screenshots/new-experiment-actions.png" alt="Picking what people can do when creating an experiment" width="49%">
 </p>
 
+### Polls
+
+Ask everyone at once with **⌘P**: "Would you pay $14 a month?", with your own options. Each character answers
+in character, with a reason, from what they know and remember. Polls are **off the record** by default (nobody
+remembers being asked, so asking doesn't change the world) or **public** (the result becomes next round's event and
+everyone remembers their answer), and can repeat every round or every few rounds.
+
+<img src="docs/screenshots/poll.png" alt="Poll results in the feed with everyone's answer and reason" width="100%">
+
 ### Characters
 
 Every character has a profile: personality, interests, goals, ties and memories. Talk to them
@@ -178,6 +187,7 @@ and **⌘K** to go to anything: experiments, characters, branches and actions.
 | `⌘R` | run / pause |
 | `⌘→` | play one round |
 | `⌘E` | inject an event |
+| `⌘P` | ask everyone (poll) |
 | `⇧⌘F` | fork this moment |
 | `⇧⌘R` | generate report |
 | `⌘,` | settings |

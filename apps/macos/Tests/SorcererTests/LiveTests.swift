@@ -87,3 +87,25 @@ final class LiveActionTests: XCTestCase {
         XCTAssertTrue((b.actions ?? []).allSatisfy { (t.actions + [Engine.leave, Engine.comeBack, Engine.invite]).contains($0.act) })
     }
 }
+
+final class LivePollTests: XCTestCase {
+    func testEveryoneAnswers() async throws {
+        guard let raw = ProcessInfo.processInfo.environment["SORCERER_LIVE"], let p = Provider(rawValue: raw) else {
+            throw XCTSkip("set SORCERER_LIVE=claude|codex|ollama")
+        }
+        let t = Template.all[1]
+        let cast = try Engine.parseSummon(try await AI.complete(
+            Engine.summonPrompt(hypothesis: t.question, context: t.context, count: 5, archetypes: t.archetypes, temper: 0.6),
+            with: p, ollamaModel: ""
+        ).text)
+        var b = Branch(name: "A", characters: cast)
+        let e = Experiment(name: "live", hypothesis: t.question, context: t.context, branches: [b])
+        try Engine.apply(try await AI.complete(Engine.roundPrompt(e, b), with: p, ollamaModel: "").text, to: &b)
+        let options = Engine.pollOptions("yes, no, only if offline mode ships")
+        let answers = try Engine.parsePoll(try await AI.complete(
+            Engine.pollPrompt(e, b, question: "Would you pay $14 a month for Lumen Pro?", options: options), with: p, ollamaModel: ""
+        ).text, options: options, in: b)
+        for (who, a) in answers.sorted(by: { $0.key < $1.key }) { print("@\(who): \(a.pick) — \(a.why)") }
+        XCTAssertEqual(answers.count, cast.count)
+    }
+}

@@ -9,6 +9,11 @@ struct FeedScreen: View {
     @State private var latestOnly = false
     @FocusState private var injecting: Bool
     @State private var view = FeedView.feed
+    @State private var asking = false
+    @State private var question = ""
+    @State private var options = "yes, no, not sure"
+    @State private var publicPoll = false
+    @State private var every = 0
 
     enum FeedView: String, CaseIterable { case feed, world, graph }
 
@@ -115,6 +120,7 @@ struct FeedScreen: View {
                         }
                         ForEach(posts) { post in PostCard(post: post, replies: b.posts.filter { $0.replyToPost == post.id }.count).id(post.id) }
                         ForEach(acts) { ActionLine(action: $0) }
+                        ForEach((b.polls ?? []).filter { $0.round == r }) { PollCard(poll: $0) }
                     }
                     if let live = store.live, live.branch == b.id, store.replay == nil {
                         LiveRoundView(live: live, branch: b)
@@ -141,20 +147,56 @@ struct FeedScreen: View {
     }
 
     private func injectBar(_ b: Branch) -> some View {
-        HStack(spacing: 10) {
-            Text("⚡").foregroundStyle(Color.ember)
-            TextField("Inject an event or change a condition…", text: $event)
-                .textFieldStyle(.plain).font(.mono(12))
-                .focused($injecting)
-                .onSubmit(send)
-                .onChange(of: store.focusInject) { injecting = true }
-                .onAppear { if store.focusInject > 0 { injecting = true } }
-            Text("⌘E · ↵ at r\(b.round + 1)").font(.mono(10)).foregroundStyle(Color.muted)
-            Button("inject", action: send).buttonStyle(SButton())
-                .disabled(event.isEmpty)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Tabs(options: [(false, "⚡ event"), (true, "? ask everyone")], selection: $asking)
+                if asking {
+                    TextField("Ask everyone something… e.g. Would you pay $14 a month?", text: $question)
+                        .textFieldStyle(.plain).font(.mono(12))
+                        .focused($injecting)
+                        .onSubmit(sendPoll)
+                    Button(store.busy == "asking everyone…" ? "asking…" : "ask", action: sendPoll).buttonStyle(SButton(primary: true))
+                        .disabled(question.isEmpty || store.busy != nil)
+                } else {
+                    TextField("Inject an event or change a condition…", text: $event)
+                        .textFieldStyle(.plain).font(.mono(12))
+                        .focused($injecting)
+                        .onSubmit(send)
+                    Text("⌘E · ↵ at r\(b.round + 1)").font(.mono(10)).foregroundStyle(Color.muted)
+                    Button("inject", action: send).buttonStyle(SButton())
+                        .disabled(event.isEmpty)
+                }
+            }
+            if asking {
+                HStack(spacing: 14) {
+                    Text("options").font(.mono(10)).foregroundStyle(Color.muted)
+                    TextField("yes, no, not sure", text: $options).textFieldStyle(.plain).font(.mono(11)).frame(maxWidth: 260)
+                    Tabs(options: [(false, "off the record"), (true, "public")], selection: $publicPoll)
+                        .help("Off the record: nobody remembers being asked. Public: the poll becomes an event and everyone remembers their answer.")
+                    Picker("", selection: $every) {
+                        Text("once").tag(0)
+                        Text("every round").tag(1)
+                        Text("every 2 rounds").tag(2)
+                        Text("every 3 rounds").tag(3)
+                    }
+                    .labelsHidden().fixedSize().font(.mono(11))
+                    Spacer()
+                    Text("1 call · \(b.characters.count - Engine.away(b).count) people answer").font(.mono(10)).foregroundStyle(Color.muted)
+                }
+            }
         }
+        .onChange(of: store.focusInject) { asking = false; injecting = true }
+        .onChange(of: store.focusPoll) { asking = true; injecting = true }
+        .onAppear { if store.focusInject > 0 || store.focusPoll > 0 { injecting = true } }
         .card()
         .padding(14)
+    }
+
+    private func sendPoll() {
+        let q = question, opts = Engine.pollOptions(options)
+        guard !q.isEmpty, store.busy == nil else { return }
+        question = ""
+        Task { await store.poll(q, options: opts, open: publicPoll, every: every == 0 ? nil : every) }
     }
 
     private func send() {
@@ -225,6 +267,62 @@ struct Timeline: View {
     private func stop() {
         playing?.cancel()
         playing = nil
+    }
+}
+
+/// A poll in the feed: the question, a bar per option, and who answered what (click to read why).
+struct PollCard: View {
+    @Environment(Store.self) private var store
+    var poll: Poll
+    @State private var open = false
+
+    var body: some View {
+        let total = max(1, poll.answers.count)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("?").font(.mono(13, .semibold)).foregroundStyle(Color.ember)
+                Text(poll.question).font(.display(15))
+                Spacer()
+                Text("\(poll.open ? "public" : "off the record")\(poll.every.map { " · every \($0 == 1 ? "round" : "\($0) rounds")" } ?? "") · \(poll.answers.count) answered")
+                    .font(.mono(10)).foregroundStyle(Color.muted)
+            }
+            ForEach(poll.options, id: \.self) { o in
+                let n = poll.count(o)
+                HStack(spacing: 10) {
+                    Text(o).font(.mono(11)).frame(width: 110, alignment: .leading).lineLimit(1)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Rectangle().fill(Color.line)
+                            Rectangle().fill(Color.ember.opacity(0.8)).frame(width: geo.size.width * CGFloat(n) / CGFloat(total))
+                        }
+                    }
+                    .frame(height: 8)
+                    HStack(spacing: -4) {
+                        ForEach(poll.answers.filter { $0.value.pick == o }.map(\.key).sorted(), id: \.self) { Avatar(name: $0, size: 16) }
+                    }
+                    .frame(width: 90, alignment: .leading)
+                    Text("\(n)").font(.mono(11)).frame(width: 20, alignment: .trailing)
+                }
+            }
+            Button(open ? "hide answers" : "why? · read every answer") { withAnimation { open.toggle() } }
+                .buttonStyle(.plain).font(.mono(10)).foregroundStyle(Color.muted)
+            if open {
+                ForEach(poll.answers.sorted { $0.key < $1.key }, id: \.key) { who, a in
+                    Button { store.go(.character(who)) } label: {
+                        HStack(alignment: .top, spacing: 8) {
+                            Avatar(name: who, size: 18)
+                            Text("@\(who)").font(.mono(11, .semibold)).frame(width: 90, alignment: .leading)
+                            Text(a.pick).font(.mono(11)).foregroundStyle(Color.ember).frame(width: 80, alignment: .leading)
+                            Text(a.why).font(.display(13, .regular)).foregroundStyle(Color.paper.opacity(0.8))
+                            Spacer(minLength: 0)
+                        }
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .card(.ember, padding: 16)
     }
 }
 
