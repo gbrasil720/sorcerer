@@ -417,6 +417,60 @@ enum Engine {
         return out
     }
 
+    /// A poll's answers as they stream in: the ones complete, and whose answer is being written.
+    struct PartialPoll: Equatable {
+        var done: [(who: String, answer: Poll.Answer)] = []
+        var typing: String?
+        var pick: String?
+        var draft = ""
+
+        static func == (a: Self, b: Self) -> Bool {
+            a.done.map(\.who) == b.done.map(\.who) && a.typing == b.typing && a.pick == b.pick && a.draft == b.draft
+        }
+    }
+
+    /// Reads `{"answers":{"ada":{"pick":..,"why":..},…}}` while it streams. Never throws.
+    static func partialPoll(_ text: String) -> PartialPoll {
+        var out = PartialPoll()
+        guard let key = text.range(of: "\"answers\""), let open = text[key.upperBound...].firstIndex(of: "{") else { return out }
+        var i = text.index(after: open)
+        var depth = 0, inString = false, escaped = false
+        var stringStart: String.Index?, lastString = "", who: String?, start: String.Index?
+        while i < text.endIndex {
+            let c = text[i]
+            if inString {
+                if escaped { escaped = false } else if c == "\\" { escaped = true } else if c == "\"" {
+                    inString = false
+                    if depth == 0, let s = stringStart { lastString = String(text[text.index(after: s)..<i]) }
+                }
+            } else if c == "\"" {
+                inString = true
+                stringStart = i
+            } else if c == "{" {
+                if depth == 0 { start = i; who = handle(lastString) }
+                depth += 1
+            } else if c == "}" {
+                if depth == 0 { return out } // answers closed
+                depth -= 1
+                if depth == 0, let s = start, let w = who {
+                    struct A: Decodable { var pick: String; var why: String? }
+                    if let a = try? JSONDecoder().decode(A.self, from: Data(text[s...i].utf8)) {
+                        out.done.append((w, Poll.Answer(pick: a.pick, why: a.why ?? "")))
+                    }
+                    start = nil
+                }
+            }
+            i = text.index(after: i)
+        }
+        if let s = start, let w = who {
+            let obj = String(text[s...])
+            out.typing = w
+            out.pick = field("pick", in: obj)
+            out.draft = field("why", in: obj, partial: true) ?? ""
+        }
+        return out
+    }
+
     /// Options typed as "yes, no, maybe"; a blank or single option falls back to yes / no / not sure.
     static func pollOptions(_ text: String) -> [String] {
         var seen = Set<String>()

@@ -254,6 +254,20 @@ final class PollTests: XCTestCase {
         XCTAssertEqual(a, ["ada": Poll.Answer(pick: "yes", why: "sync")])
     }
 
+    func testPartialPollWhileStreaming() {
+        let text = #"Sure: {"answers":{"@Ada":{"pick":"yes","why":"sync, finally"},"bruno":{"pick":"no","why":"too much for a"#
+        let p = Engine.partialPoll(text)
+        XCTAssertEqual(p.done.map(\.who), ["ada"])
+        XCTAssertEqual(p.done.first?.answer, Poll.Answer(pick: "yes", why: "sync, finally"))
+        XCTAssertEqual(p.typing, "bruno")
+        XCTAssertEqual(p.pick, "no")
+        XCTAssertEqual(p.draft, "too much for a")
+        XCTAssertTrue(Engine.partialPoll("{\"answ").done.isEmpty)
+        let full = Engine.partialPoll(text + #"n app"}}}"#)
+        XCTAssertEqual(full.done.count, 2)
+        XCTAssertNil(full.typing)
+    }
+
     func testOptionsFallBackAndDedupe() {
         XCTAssertEqual(Engine.pollOptions("Yes, no , yes,, maybe"), ["Yes", "no", "maybe"])
         XCTAssertEqual(Engine.pollOptions("whatever"), ["yes", "no", "not sure"])
