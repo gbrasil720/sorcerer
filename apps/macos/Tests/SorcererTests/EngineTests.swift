@@ -55,6 +55,45 @@ final class EngineTests: XCTestCase {
         XCTAssertEqual(Engine.rewind(b, to: 5, start: nil), b) // past the end: unchanged
     }
 
+    func testActionsAreCheckedAndCounted() throws {
+        var b = branch()
+        let acts = ["upgrade", "cancel"]
+        let invites = try Engine.apply(#"""
+        {"posts":[{"author":"ada","text":"bye","mood":-0.5}],
+         "actions":{"ada":{"do":"Leave","why":"too pricey"},"bruno":{"do":"upgrade","why":"sync"},
+                    "ghost":{"do":"upgrade"},"chen":{"do":"invite"}}}
+        """#, to: &b, actions: acts)
+        XCTAssertTrue(invites.isEmpty) // chen isn't in the cast, and an invite needs "who"
+        XCTAssertEqual(b.actions?.map(\.act), ["leave", "upgrade"])
+        XCTAssertEqual(Engine.away(b), ["ada"])
+        XCTAssertEqual(b.posts.count, 1) // a goodbye post the round you leave is fine
+
+        let r2 = try Engine.apply(#"""
+        {"posts":[{"author":"ada","text":"still here?","mood":0},{"author":"bruno","text":"meh","mood":0}],
+         "actions":{"ada":{"do":"cancel"},"bruno":{"do":"invite","who":"a coworker who hates sync bugs","why":"needs it"}}}
+        """#, to: &b, actions: acts)
+        XCTAssertEqual(r2, [Engine.Invite(by: "bruno", who: "a coworker who hates sync bugs")])
+        XCTAssertEqual(b.posts.last?.author, "bruno") // ada left last round and didn't come back
+        XCTAssertEqual(b.actions?.count, 3) // ada can't act while away
+        XCTAssertEqual(Engine.tally(b, acts).map(\.count), [1, 0])
+
+        try Engine.apply(#"{"posts":[],"actions":{"ada":{"do":"come back"},"bruno":{"do":"cancel"}}}"#, to: &b, actions: acts)
+        XCTAssertTrue(Engine.away(b).isEmpty)
+        XCTAssertEqual(Engine.tally(b, acts).map(\.count), [0, 1]) // bruno's latest is cancel
+        XCTAssertEqual(Engine.rewind(b, to: 1, start: nil).actions?.count, 2)
+    }
+
+    func testActionsIgnoredWithoutAList() throws {
+        var b = branch()
+        try Engine.apply(#"{"posts":[],"actions":{"ada":{"do":"leave"}}}"#, to: &b)
+        XCTAssertNil(b.actions)
+    }
+
+    func testSuggestedActionsAreCleaned() throws {
+        let a = try Engine.parseActions(#"{"actions":["Upgrade","upgrade"," cancel ","leave","invite",""]}"#)
+        XCTAssertEqual(a, ["upgrade", "cancel"])
+    }
+
     func testNoJSONThrowsAndLeavesBranchAlone() {
         var b = branch()
         XCTAssertThrowsError(try Engine.apply("I can't do that.", to: &b))

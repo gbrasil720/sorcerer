@@ -35,6 +35,8 @@ struct Persona: Codable, Identifiable, Hashable {
     var insider: Bool?
     /// Chosen in the avatar editor; nil = the default face for this handle.
     var look: Look?
+    /// Round they joined in, when someone invited them mid-run; nil = there from the start.
+    var joined: Int?
     var id: String { handle }
 }
 
@@ -68,6 +70,15 @@ struct Post: Codable, Identifiable, Hashable {
     var replyToPost: UUID?
     var agree: Int?
     var disagree: Int?
+}
+
+/// Something a character did, not just said: "cancel Pro", "leave", "invite"…
+struct Action: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var round: Int
+    var who: String
+    var act: String
+    var why: String
 }
 
 struct WorldEvent: Codable, Identifiable, Hashable {
@@ -131,6 +142,8 @@ struct Branch: Codable, Identifiable, Hashable {
     var events: [WorldEvent] = []
     /// Average community mood after each round; index 0 = before round 1.
     var moodByRound: [Double] = []
+    /// What people did, round by round. Optional so older worlds still load.
+    var actions: [Action]?
 }
 
 struct Experiment: Codable, Identifiable, Hashable {
@@ -151,6 +164,8 @@ struct Experiment: Codable, Identifiable, Hashable {
     /// Files and links the context was read from.
     var sources: [String]?
     var brief: Brief?
+    /// What characters can do besides talking ("subscribe", "cancel"). nil = older experiments, no actions.
+    var actions: [String]?
 }
 
 struct Settings: Codable, Equatable {
@@ -207,6 +222,7 @@ struct Template: Identifiable {
     var context: String
     var rounds = 10
     var environment = "social feed"
+    var actions: [String] = []
     var id: String { tag }
     var title: String {
         ["product reactions": "Product reaction", "pricing · A/B": "Pricing A/B", "news spread": "News spread",
@@ -217,7 +233,8 @@ struct Template: Identifiable {
         Template(
             tag: "product reactions", question: "our customers saw this product tomorrow?", count: 8,
             archetypes: ["early adopters", "skeptics", "budget buyers", "power users"],
-            context: "Describe your product here: what it does, who it is for, what it costs."
+            context: "Describe your product here: what it does, who it is for, what it costs.",
+            actions: ["sign up", "buy", "recommend it", "ask for a refund"]
         ),
         Template(
             tag: "pricing · A/B", question: "Lumen raised its plan from $9 to $14 a month?", count: 6,
@@ -228,24 +245,28 @@ struct Template: Identifiable {
             Most users found Lumen through word of mouth; many compare it with free note apps.
             Faster sync is the most requested improvement.
             Insiders only: offline mode is in development, planned for the next release.
-            """
+            """,
+            actions: ["upgrade to Pro", "cancel Pro", "switch to a free app", "recommend Lumen"]
         ),
         Template(
             tag: "news spread", question: "this headline hit the group chat?", count: 8,
             archetypes: ["news junkies", "skeptics", "lurkers", "contrarians"],
-            context: "Paste the headline and the article it links to.", rounds: 12, environment: "group chat"
+            context: "Paste the headline and the article it links to.", rounds: 12, environment: "group chat",
+            actions: ["share it", "fact-check it", "mute the chat"]
         ),
         Template(
             tag: "community rules", question: "the forum banned anonymous posts?", count: 8,
             archetypes: ["moderators", "long-time members", "lurkers", "privacy advocates"],
             context: "A mid-size hobby forum where about half the active posters use anonymous accounts.",
-            rounds: 8, environment: "forum"
+            rounds: 8, environment: "forum",
+            actions: ["support the rule", "protest", "make a new account"]
         ),
         Template(
             tag: "fiction", question: "a dragon moved into the village?", count: 8,
             archetypes: ["farmers", "the mayor", "a blacksmith", "children", "a traveling bard"],
             context: "Riverside is a quiet village of 200 people by a river. Trade with the city is its lifeline.",
-            rounds: 20, environment: "town square"
+            rounds: 20, environment: "town square",
+            actions: ["flee", "take up arms", "bring an offering", "call the guard"]
         ),
     ]
 }
