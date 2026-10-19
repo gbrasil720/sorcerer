@@ -372,6 +372,66 @@ enum Engine {
         return invites
     }
 
+    // MARK: polls
+
+    static func pollPrompt(_ e: Experiment, _ b: Branch, question: String, options: [String]) -> String {
+        let gone = away(b)
+        let people = b.characters.filter { !gone.contains($0.handle) }.map {
+            "- \($0.handle) — \($0.role) — mood \(String(format: "%.1f", $0.mood)) — traits: \($0.traits.map { "\($0.key) \(String(format: "%.1f", $0.value))" }.sorted().joined(separator: ", ")) — remembers: \($0.memories.suffix(5).joined(separator: "; "))"
+        }.joined(separator: "\n")
+        let recent = b.posts.suffix(12).map { "r\($0.round) @\($0.author): \($0.text)" }.joined(separator: "\n")
+        return """
+        Sorcerer simulates a community exploring: What if \(e.hypothesis)
+        \(knowledge(e, b.characters))
+
+        After round \(b.round), everyone is asked, privately and one by one: "\(question)"
+        Options: \(options.map { "\"\($0)\"" }.joined(separator: ", "))
+
+        People (handle — role — mood -1..1 — traits — memories):
+        \(people)
+
+        What was said lately:
+        \(recent.isEmpty ? "(nothing yet)" : recent)
+
+        Answer for each person, in character, from what they know and remember. Don't make them more agreeable than they are;
+        it's fine if most pick the same option or if the answers split.
+        Reply with ONLY JSON: {"answers":{"handle":{"pick":"one of the options, exactly","why":"one short sentence in their voice"}}}
+        """
+    }
+
+    /// Answers from known people who are still here, with picks matched to the options.
+    static func parsePoll(_ text: String, options: [String], in b: Branch) throws -> [String: Poll.Answer] {
+        struct Out: Decodable {
+            struct A: Decodable { var pick: String; var why: String? }
+            var answers: [String: A]
+        }
+        let gone = away(b)
+        let known = Set(b.characters.map(\.handle)).subtracting(gone)
+        var out: [String: Poll.Answer] = [:]
+        for (raw, a) in try json(Out.self, from: text).answers {
+            let who = handle(raw)
+            let p = a.pick.trimmingCharacters(in: .whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"'.")))
+            guard known.contains(who), let pick = options.first(where: { $0.lowercased() == p.lowercased() }) else { continue }
+            out[who] = Poll.Answer(pick: pick, why: a.why ?? "")
+        }
+        return out
+    }
+
+    /// Options typed as "yes, no, maybe"; a blank or single option falls back to yes / no / not sure.
+    static func pollOptions(_ text: String) -> [String] {
+        var seen = Set<String>()
+        let opts = text.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
+        return opts.count >= 2 ? Array(opts.prefix(6)) : ["yes", "no", "not sure"]
+    }
+
+    /// Recurring polls due after the round just played: their latest run is `every` rounds old.
+    static func duePolls(_ b: Branch) -> [Poll] {
+        let polls = b.polls ?? []
+        let latest = Dictionary(grouping: polls.filter { $0.every != nil }, by: \.question).compactMap { $0.value.max { $0.round < $1.round } }
+        return latest.filter { p in b.round - p.round >= (p.every ?? .max) }
+    }
+
     static func suggestActionsPrompt(hypothesis: String, context: String) -> String {
         """
         Sorcerer simulates a small community reacting to: What if \(hypothesis)
@@ -426,6 +486,7 @@ enum Engine {
         out.events = b.events.filter { $0.round <= n }
         out.moodByRound = Array(b.moodByRound.prefix(n + 1))
         out.actions = b.actions?.filter { $0.round <= n }
+        out.polls = b.polls?.filter { $0.round <= n }
         out.characters = b.characters.filter { ($0.joined ?? 0) <= n }
         // ponytail: agree/disagree counts are totals, so reactions from later rounds stay on old posts;
         // store reactions per round if replays need exact counts.

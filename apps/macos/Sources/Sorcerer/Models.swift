@@ -81,6 +81,27 @@ struct Action: Codable, Identifiable, Hashable {
     var why: String
 }
 
+/// A question put to everyone at once, and what each person answered.
+struct Poll: Codable, Identifiable, Hashable {
+    var id = UUID()
+    /// Asked after this round.
+    var round: Int
+    var question: String
+    var options: [String]
+    var answers: [String: Answer] = [:]
+    /// Public polls become an event and a memory; off the record (the default) changes nothing.
+    var open = false
+    /// Ask again every N rounds; nil = once.
+    var every: Int?
+
+    struct Answer: Codable, Hashable {
+        var pick: String
+        var why: String
+    }
+
+    func count(_ option: String) -> Int { answers.values.filter { $0.pick == option }.count }
+}
+
 struct WorldEvent: Codable, Identifiable, Hashable {
     var id = UUID()
     var round: Int
@@ -144,6 +165,7 @@ struct Branch: Codable, Identifiable, Hashable {
     var moodByRound: [Double] = []
     /// What people did, round by round. Optional so older worlds still load.
     var actions: [Action]?
+    var polls: [Poll]?
 }
 
 struct Experiment: Codable, Identifiable, Hashable {

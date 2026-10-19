@@ -236,3 +236,38 @@ final class EngineTests: XCTestCase {
         XCTAssertNil(AI.delta(#"{"type":"result","result":"x"}"#))
     }
 }
+
+final class PollTests: XCTestCase {
+    private func branch() -> Branch {
+        var b = Branch(name: "A", characters: [
+            Persona(handle: "ada", role: "designer"), Persona(handle: "bruno", role: "power user"), Persona(handle: "chen", role: "student"),
+        ])
+        b.actions = [Action(round: 1, who: "chen", act: Engine.leave, why: "")]
+        b.round = 2
+        return b
+    }
+
+    func testAnswersMatchOptionsAndSkipPeopleWhoLeft() throws {
+        let a = try Engine.parsePoll(#"""
+        {"answers":{"@Ada":{"pick":"Yes.","why":"sync"},"bruno":{"pick":"absolutely"},"chen":{"pick":"no"},"ghost":{"pick":"no"}}}
+        """#, options: ["yes", "no"], in: branch())
+        XCTAssertEqual(a, ["ada": Poll.Answer(pick: "yes", why: "sync")])
+    }
+
+    func testOptionsFallBackAndDedupe() {
+        XCTAssertEqual(Engine.pollOptions("Yes, no , yes,, maybe"), ["Yes", "no", "maybe"])
+        XCTAssertEqual(Engine.pollOptions("whatever"), ["yes", "no", "not sure"])
+    }
+
+    func testRecurringPollsComeDue() {
+        var b = branch()
+        b.polls = [Poll(round: 1, question: "pay $14?", options: ["yes", "no"], every: 2),
+                   Poll(round: 2, question: "once", options: ["yes", "no"])]
+        XCTAssertTrue(Engine.duePolls(b).isEmpty)
+        b.round = 3
+        XCTAssertEqual(Engine.duePolls(b).map(\.question), ["pay $14?"])
+        b.polls?.append(Poll(round: 3, question: "pay $14?", options: ["yes", "no"], every: 2))
+        XCTAssertTrue(Engine.duePolls(b).isEmpty)
+        XCTAssertEqual(Engine.rewind(b, to: 2, start: nil).polls?.count, 2)
+    }
+}
