@@ -387,7 +387,7 @@ function Nav() {
           <Pixels rows={HAT} size={2.3} />
           <span className="font-mono font-semibold">sorcerer</span>
           <span className="font-mono text-muted text-xs max-sm:hidden">
-            v0.1 · open source
+            v0.2 · open source
           </span>
         </a>
         <div className="flex items-center gap-6 font-mono text-muted text-sm">
