@@ -279,7 +279,8 @@ final class Store {
     }
 
     func create(hypothesis: String, context: String, cast: [Persona], community: String? = nil,
-                environment: String? = nil, rounds: Int? = nil, sources: [String] = [], brief: Brief? = nil) {
+                environment: String? = nil, rounds: Int? = nil, sources: [String] = [], brief: Brief? = nil,
+                actions: [String]? = nil) {
         let filler: Set = ["a", "an", "the", "its", "it", "to", "of", "from", "if", "what", "we", "our", "this", "that", "into", "on", "in", "for", "and", "is", "was"]
         let slug = hypothesis.lowercased().split { !$0.isLetter && !$0.isNumber }.map(String.init)
             .filter { !filler.contains($0) }.prefix(3).joined(separator: "-")
@@ -292,6 +293,7 @@ final class Store {
         e.rounds = rounds
         e.sources = sources.isEmpty ? nil : sources
         e.brief = brief
+        e.actions = actions
         experiments.insert(e, at: 0)
         save(e)
         open(e.id)
@@ -308,7 +310,9 @@ final class Store {
                 guard let self, self.live?.branch == branchID else { return }
                 self.live?.partial = Engine.partialRound(text)
             }
-            try mutateBranch { try Engine.apply(reply, to: &$0) }
+            var invites: [Engine.Invite] = []
+            try mutateBranch { invites = try Engine.apply(reply, to: &$0, actions: e.actions) }
+            for i in invites { await bringIn(i, round: b.round + 1) }
         } catch {
             if pausedUntil == nil { self.error = error.localizedDescription }
         }
@@ -384,6 +388,37 @@ final class Store {
         if b.characters.contains(where: { $0.handle == p.handle }) { p.handle += "2" }
         mutateBranch { $0.characters.append(p) }
         go(.character(p.handle))
+    }
+
+    /// Summons the person a character invited and ties them to whoever brought them.
+    private func bringIn(_ i: Engine.Invite, round: Int) async {
+        guard let e = experiment, let b = branch else { return }
+        let r = await summon(
+            hypothesis: e.hypothesis, context: e.context, count: 1, archetypes: [], temper: 0.5,
+            described: "\(i.who), invited by @\(i.by) in a community with: " + b.characters.map(\.handle).joined(separator: ", ")
+        )
+        guard var p = r.cast.first else { return }
+        if b.characters.contains(where: { $0.handle == p.handle }) { p.handle += "2" }
+        p.joined = round
+        p.ties = [i.by: "invited by"]
+        p.memories = ["r\(round): @\(i.by) invited me"]
+        mutateBranch { b in
+            b.characters.append(p)
+            if let j = b.characters.firstIndex(where: { $0.handle == i.by }) {
+                b.characters[j].ties = (b.characters[j].ties ?? [:]).merging([p.handle: "invited"]) { $1 }
+            }
+        }
+    }
+
+    /// Asks the AI what people in this world could do about the question.
+    func suggestActions(hypothesis: String, context: String) async -> [String] {
+        do {
+            return try Engine.parseActions(try await ask(Engine.suggestActionsPrompt(hypothesis: hypothesis, context: context),
+                                                         settings.characters, "suggesting actions…"))
+        } catch {
+            self.error = error.localizedDescription
+            return []
+        }
     }
 
     func inject(_ text: String) {
