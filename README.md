@@ -180,14 +180,26 @@ for someone else to run.
 
 ## Install
 
+**The quick way.** Paste this in Terminal. It downloads the latest release, checks its checksum, puts
+Sorcerer in Applications and opens it, with no Gatekeeper prompt:
+
+```bash
+curl -fsSL https://sorcererapp.dev/install.sh | sh
+```
+
+([read the script](apps/web/public/install.sh) first if you like; it's 50 lines.)
+
+**Or with the DMG.**
+
 1. Download **[Sorcerer.dmg](https://github.com/gbrasil720/sorcerer/releases/latest/download/Sorcerer.dmg)**
    from the [latest release](https://github.com/gbrasil720/sorcerer/releases/latest). It's a universal app
    (Apple silicon and Intel) for macOS 15 or later.
 2. Open the DMG and drag **Sorcerer** into **Applications**.
-3. Install at least one AI tool and sign in: the `claude` CLI, the `codex` CLI, or [Ollama](https://ollama.com).
 
-**First launch.** Sorcerer is free and isn't signed with a paid Apple developer account, so macOS stops it
-the first time with *"Apple could not verify Sorcerer…"*. To open it anyway:
+Either way, install at least one AI tool and sign in: the `claude` CLI, the `codex` CLI, or [Ollama](https://ollama.com).
+
+**First launch (DMG only).** Sorcerer is free and isn't signed with a paid Apple developer account, so macOS
+stops a browser download the first time with *"Apple could not verify Sorcerer…"*. To open it anyway:
 
 - open Sorcerer once, then go to **System Settings › Privacy & Security**, scroll down and click
   **Open Anyway** next to the message about Sorcerer, **or**
