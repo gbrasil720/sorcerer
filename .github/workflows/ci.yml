@@ -9,7 +9,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build and test the app
         working-directory: apps/macos
         run: swift test
