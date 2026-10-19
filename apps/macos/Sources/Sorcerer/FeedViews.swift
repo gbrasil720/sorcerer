@@ -103,33 +103,7 @@ struct GraphView: View {
                         Text(focus.map { "showing @\($0) · click again for everyone" } ?? "click a name to focus")
                             .font(.mono(10)).foregroundStyle(Color.muted)
                     }
-                    Chart {
-                        RuleMark(y: .value("neutral", 0)).foregroundStyle(Color.dim).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                        ForEach(Array(handles.enumerated()), id: \.element) { i, h in
-                            ForEach(Array((series[h] ?? []).enumerated()), id: \.offset) { r, mood in
-                                LineMark(x: .value("round", r), y: .value("mood", mood), series: .value("who", h))
-                                    .foregroundStyle(color(i))
-                                    .lineStyle(StrokeStyle(lineWidth: focus == h ? 2.5 : 1.5))
-                                    .opacity(focus == nil || focus == h ? 1 : 0.15)
-                                PointMark(x: .value("round", r), y: .value("mood", mood))
-                                    .foregroundStyle(color(i)).symbolSize(focus == h ? 30 : 14)
-                                    .opacity(focus == nil || focus == h ? 1 : 0.15)
-                            }
-                        }
-                    }
-                    .chartYScale(domain: -1...1)
-                    .chartXScale(domain: 0...max(1, branch.round), range: .plotDimension(startPadding: 12, endPadding: 24))
-                    .chartXAxis {
-                        AxisMarks(values: Array(0...max(1, branch.round))) { v in
-                            AxisValueLabel { Text("r\(v.as(Int.self) ?? 0)").font(.mono(10)).foregroundStyle(Color.muted) }
-                        }
-                    }
-                    .chartYAxis {
-                        AxisMarks(position: .leading, values: [-1, -0.5, 0, 0.5, 1]) { v in
-                            AxisGridLine().foregroundStyle(Color.line)
-                            AxisValueLabel { Text(signed(v.as(Double.self) ?? 0)).font(.mono(10)).foregroundStyle(Color.muted) }
-                        }
-                    }
+                    moodChart(series, handles)
                     .frame(height: 280)
                     FlowLayout(spacing: 8) {
                         ForEach(Array(handles.enumerated()), id: \.element) { i, h in
@@ -180,4 +154,59 @@ struct GraphView: View {
     }
 
     private func color(_ i: Int) -> Color { Color(hex: Self.palette[i % Self.palette.count]) }
+
+    /// One plotted point. Precomputed so the chart body stays simple enough for every Swift compiler.
+    private struct Point: Identifiable {
+        var who: String
+        var round: Int
+        var mood: Double
+        var color: Color
+        var on: Bool
+        var id: String { "\(who)-\(round)" }
+    }
+
+    private func points(_ series: [String: [Double]], _ handles: [String]) -> [Point] {
+        handles.enumerated().flatMap { i, h in
+            (series[h] ?? []).enumerated().map { r, m in
+                Point(who: h, round: r, mood: m, color: color(i), on: focus == nil || focus == h)
+            }
+        }
+    }
+
+    private func moodChart(_ series: [String: [Double]], _ handles: [String]) -> some View {
+        let pts = points(series, handles)
+        let last = max(1, branch.round)
+        return Chart {
+            RuleMark(y: .value("neutral", 0))
+                .foregroundStyle(Color.dim)
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            ForEach(pts) { p in
+                LineMark(x: .value("round", p.round), y: .value("mood", p.mood), series: .value("who", p.who))
+                    .foregroundStyle(p.color)
+                    .lineStyle(StrokeStyle(lineWidth: focus == p.who ? 2.5 : 1.5))
+                    .opacity(p.on ? 1 : 0.15)
+                PointMark(x: .value("round", p.round), y: .value("mood", p.mood))
+                    .foregroundStyle(p.color)
+                    .symbolSize(focus == p.who ? 30 : 14)
+                    .opacity(p.on ? 1 : 0.15)
+            }
+        }
+        .chartYScale(domain: -1...1)
+        .chartXScale(domain: 0...last, range: .plotDimension(startPadding: 12, endPadding: 24))
+        .chartXAxis { roundAxis(last) }
+        .chartYAxis { moodAxis }
+    }
+
+    private func roundAxis(_ last: Int) -> some AxisContent {
+        AxisMarks(values: Array(0...last)) { v in
+            AxisValueLabel { Text("r\(v.as(Int.self) ?? 0)").font(.mono(10)).foregroundStyle(Color.muted) }
+        }
+    }
+
+    private var moodAxis: some AxisContent {
+        AxisMarks(position: .leading, values: [-1, -0.5, 0, 0.5, 1]) { v in
+            AxisGridLine().foregroundStyle(Color.line)
+            AxisValueLabel { Text(signed(v.as(Double.self) ?? 0)).font(.mono(10)).foregroundStyle(Color.muted) }
+        }
+    }
 }
