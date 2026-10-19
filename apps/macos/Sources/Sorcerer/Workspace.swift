@@ -13,7 +13,7 @@ struct FeedScreen: View {
     enum FeedView: String, CaseIterable { case feed, world, graph }
 
     var body: some View {
-        if let e = store.experiment, let b = store.branch {
+        if let e = store.experiment, let b = store.branch, let shown = store.shown {
             VStack(spacing: 0) {
                 ExperimentBar {
                     if store.running {
@@ -24,21 +24,23 @@ struct FeedScreen: View {
                     }
                     Button("step ›") { Task { await store.step() } }.buttonStyle(SButton())
                         .disabled(store.busy != nil).help("Play one round (⌘→)")
-                    Button("⑂ fork") { store.fork() }.buttonStyle(SButton()).disabled(store.busy != nil)
-                        .help("Fork this moment into a new branch")
+                    Button(store.replay.map { "⑂ fork from r\($0)" } ?? "⑂ fork") { store.fork() }.buttonStyle(SButton())
+                        .disabled(store.busy != nil)
+                        .help(store.replay == nil ? "Fork this moment into a new branch" : "Start a new branch from the round you're replaying")
                 }
                 HStack(spacing: 0) {
                     VStack(spacing: 0) {
-                        filterBar(b)
+                        filterBar(shown)
+                        if b.round > 0 { Timeline(branch: b) }
                         switch view {
-                        case .feed: feed(e, b)
-                        case .world: WorldView(branch: b)
-                        case .graph: GraphView(experiment: e, branch: b)
+                        case .feed: feed(e, shown)
+                        case .world: WorldView(branch: shown)
+                        case .graph: GraphView(experiment: e, branch: shown)
                         }
                         injectBar(b)
                     }
                     Rectangle().fill(Color.line).frame(width: 1)
-                    WorldPanel(branch: b, showMap: view != .world).frame(width: 320)
+                    WorldPanel(branch: shown, showMap: view != .world).frame(width: 320)
                 }
             }
         }
@@ -82,6 +84,8 @@ struct FeedScreen: View {
                 LazyVStack(alignment: .leading, spacing: 10) {
                     if b.round == 0 {
                         (Text("What if ").foregroundStyle(Color.muted) + Text(e.hypothesis)).font(.display(20)).padding(.bottom, 6)
+                    }
+                    if b.round == 0, store.replay == nil {
                         HStack {
                             Text("Round 0. The world is waiting.").font(.mono(11)).foregroundStyle(Color.muted)
                             Spacer()
@@ -110,7 +114,7 @@ struct FeedScreen: View {
                         }
                         ForEach(posts) { post in PostCard(post: post, replies: b.posts.filter { $0.replyToPost == post.id }.count).id(post.id) }
                     }
-                    if let live = store.live, live.branch == b.id {
+                    if let live = store.live, live.branch == b.id, store.replay == nil {
                         LiveRoundView(live: live, branch: b)
                     }
                     Color.clear.frame(height: 1).id("end")
@@ -119,6 +123,7 @@ struct FeedScreen: View {
             }
             .defaultScrollAnchor(.bottom)
             .onChange(of: b.posts.count) { withAnimation { proxy.scrollTo("end") } }
+            .onChange(of: store.replay) { withAnimation { proxy.scrollTo("end") } }
             // Follow the live round as it grows.
             .onChange(of: store.live?.partial.done.count) { withAnimation { proxy.scrollTo("end") } }
             .onChange(of: store.live?.partial.typing) { withAnimation { proxy.scrollTo("end") } }
@@ -153,6 +158,71 @@ struct FeedScreen: View {
     private func send() {
         store.inject(event)
         event = ""
+    }
+}
+
+/// Every round of the branch as a strip you can click through, plus a replay that plays the
+/// branch back from round 0. Forking while replaying starts the new branch at that round.
+struct Timeline: View {
+    @Environment(Store.self) private var store
+    var branch: Branch
+    @State private var playing: Task<Void, Never>?
+    @State private var hover: Int?
+
+    var body: some View {
+        let at = store.replay ?? branch.round
+        HStack(spacing: 10) {
+            Button(playing == nil ? "▶ replay" : "❚❚") { playing == nil ? play() : stop() }
+                .buttonStyle(.plain).foregroundStyle(Color.ember)
+                .help("Play this branch back round by round")
+                .disabled(store.running || store.live != nil)
+            Text("r0").foregroundStyle(Color.muted)
+            HStack(spacing: 2) {
+                ForEach(0...branch.round, id: \.self) { r in
+                    let mood = r < branch.moodByRound.count ? branch.moodByRound[r] : 0
+                    Button { stop(); store.replay = r == branch.round ? nil : r } label: {
+                        Rectangle()
+                            .fill(r == at ? Color.ember : r < at ? Color.paper.opacity(0.55) : Color.line)
+                            .frame(maxWidth: .infinity).frame(height: hover == r ? 14 : 10)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { hover = $0 ? r : (hover == r ? nil : hover) }
+                    .help("Round \(r) · mood \(signed(mood))")
+                    .accessibilityLabel("Round \(r)")
+                }
+            }
+            .frame(height: 14)
+            .animation(.easeOut(duration: 0.12), value: hover)
+            Text("r\(branch.round)").foregroundStyle(Color.muted)
+            if let r = store.replay {
+                Text("viewing r\(r)").foregroundStyle(Color.ember)
+                Button("now ›") { stop(); store.replay = nil }.buttonStyle(.plain).help("Back to the latest round")
+            } else {
+                Text("now").foregroundStyle(Color.muted)
+            }
+        }
+        .font(.mono(10))
+        .padding(.horizontal, 18).padding(.bottom, 8)
+        .onDisappear { stop() }
+    }
+
+    private func play() {
+        if store.replay == nil || store.replay == branch.round { store.replay = 0 }
+        playing = Task {
+            while let r = store.replay, r < branch.round, !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1.5))
+                if Task.isCancelled { return }
+                withAnimation { store.replay = r + 1 }
+            }
+            if !Task.isCancelled { store.replay = nil }
+            playing = nil
+        }
+    }
+
+    private func stop() {
+        playing?.cancel()
+        playing = nil
     }
 }
 

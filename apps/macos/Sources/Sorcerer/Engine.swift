@@ -323,6 +323,29 @@ enum Engine {
         return out
     }
 
+    /// The branch as it stood after round `n`: later posts, events and memories gone, everyone's
+    /// mood back to what it was then. Used to replay a branch and to fork from a past round.
+    static func rewind(_ b: Branch, to n: Int, start: [Persona]?) -> Branch {
+        guard n >= 0, n < b.round else { return b }
+        let moods = moodSeries(b, start: start)
+        var out = b
+        out.round = n
+        out.posts = b.posts.filter { $0.round <= n }
+        out.events = b.events.filter { $0.round <= n }
+        out.moodByRound = Array(b.moodByRound.prefix(n + 1))
+        // ponytail: agree/disagree counts are totals, so reactions from later rounds stay on old posts;
+        // store reactions per round if replays need exact counts.
+        for i in out.characters.indices {
+            let h = out.characters[i].handle
+            if let m = moods[h], n < m.count { out.characters[i].mood = m[n] }
+            out.characters[i].memories = out.characters[i].memories.filter { line in
+                guard let r = line.firstMatch(of: #/^r(\d+):/#).flatMap({ Int($0.1) }) else { return true }
+                return r <= n
+            }
+        }
+        return out
+    }
+
     static func averageMood(_ b: Branch) -> Double {
         b.characters.isEmpty ? 0 : b.characters.map(\.mood).reduce(0, +) / Double(b.characters.count)
     }

@@ -132,7 +132,13 @@ duplicate them, or change how they look in a pixel-art avatar editor.
   <img src="docs/screenshots/avatar-editor.png" alt="Pixel-art avatar editor" width="49%">
 </p>
 
-### Branches & reports
+### Replay & branches
+
+Every branch has a timeline: click any round to see the feed, the world map and everyone's mood as they
+were then, or press **▶ replay** to watch it play back. Fork from the round you're looking at and the new
+branch starts there, with the same people and only the memories they had by then.
+
+<img src="docs/screenshots/replay.png" alt="Replaying round 2 of a branch, with the timeline strip and fork from r2" width="100%">
 
 Fork the world at any moment: same people, same memories, one different decision. The report compares
 branches on a sentiment chart, explains where they diverged, and every finding cites the exact posts
