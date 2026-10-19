@@ -55,6 +55,7 @@ final class Store {
     var focusInject = 0
     /// Round being replayed in the current branch; nil = the present.
     var replay: Int?
+    let updater = Updater()
 
     static let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Sorcerer")
     private static let worlds = root.appendingPathComponent("experiments")
