@@ -32,6 +32,16 @@ html {
 .marquee {
   animation: marquee 60s linear infinite;
 }
+.marquee-rev {
+  animation: marquee 70s linear infinite reverse;
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
 
 @keyframes ripple {
   from {
@@ -51,7 +61,8 @@ html {
   html {
     scroll-behavior: auto;
   }
-  .marquee {
+  .marquee,
+  .marquee-rev {
     animation: none;
   }
 }
