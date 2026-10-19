@@ -1,1 +1,57 @@
 @import "@sorcerer/ui/globals.css";
+
+@theme {
+  --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --color-ink: #0b0b0a;
+  --color-panel: #111110;
+  --color-line: #262624;
+  --color-paper: #ecebe4;
+  --color-muted: #8f8e87;
+  --color-dim: #4a4945;
+  --color-ember: #f0773a;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    rgb(255 255 255 / 0.015) 2px 3px
+  );
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  animation: marquee 60s linear infinite;
+}
+
+@keyframes ripple {
+  from {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(40);
+    opacity: 0;
+  }
+}
+.ripple {
+  animation: ripple 2.4s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .marquee {
+    animation: none;
+  }
+}
