@@ -143,6 +143,15 @@ everyone remembers their answer), and can repeat every round or every few rounds
 
 <img src="docs/screenshots/poll.png" alt="Poll results in the feed with everyone's answer and reason" width="100%">
 
+Reports count instead of guessing: each branch shows how many people took each action and the latest result of
+each poll ("cancel Pro · 1 / 6", "would you pay $14 · no · 3 / 6"), and the graph tab plots actions and repeated
+polls round by round.
+
+<p align="center">
+  <img src="docs/screenshots/report-counted.png" alt="Report with counted actions and poll results" width="49%">
+  <img src="docs/screenshots/graph-actions.png" alt="Graph tab with actions by round" width="49%">
+</p>
+
 ### Characters
 
 Every character has a profile: personality, interests, goals, ties and memories. Talk to them

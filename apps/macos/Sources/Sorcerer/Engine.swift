@@ -533,13 +533,51 @@ enum Engine {
         """
     }
 
+    /// What people did and answered in a branch, for the report.
+    private static func actionsAndPolls(_ b: Branch) -> String {
+        var s = ""
+        if let acts = b.actions, !acts.isEmpty {
+            s += "\nActions: " + acts.map { "r\($0.round) @\($0.who) \($0.act)\($0.why.isEmpty ? "" : " (\($0.why))")" }.joined(separator: "; ")
+        }
+        for p in b.polls ?? [] {
+            s += "\nPoll after r\(p.round) \"\(p.question)\": " + p.options.map { "\($0) \(p.count($0))" }.joined(separator: " · ")
+                + " — " + p.answers.sorted { $0.key < $1.key }.map { "\($0.key): \($0.value.pick)" }.joined(separator: ", ")
+        }
+        return s
+    }
+
+    /// Metrics counted from the world rather than judged by the model: actions and the latest run of each poll.
+    static func counted(_ e: Experiment, _ b: Branch) -> [BranchSummary.Metric] {
+        var out: [BranchSummary.Metric] = []
+        let total = b.characters.count
+        if let acts = e.actions {
+            for t in tally(b, acts) where t.count > 0 { out.append(.init(label: t.act, value: "\(t.count) / \(total)")) }
+            let gone = away(b).count
+            if gone > 0 { out.append(.init(label: "left", value: "\(gone) / \(total)")) }
+        }
+        let latest = Dictionary(grouping: b.polls ?? [], by: \.question).compactMap { $0.value.max { $0.round < $1.round } }
+        for p in latest.sorted(by: { $0.round < $1.round }) {
+            guard let top = p.options.max(by: { p.count($0) < p.count($1) }) else { continue }
+            let q = p.question.count > 34 ? p.question.prefix(33) + "…" : Substring(p.question)
+            out.append(.init(label: "\(q) · \(top)", value: "\(p.count(top)) / \(p.answers.count)"))
+        }
+        return Array(out.prefix(6))
+    }
+
+    /// How many people's latest action is each one, after every round (index 0 = before round 1).
+    static func actionSeries(_ b: Branch, _ acts: [String]) -> [(act: String, counts: [Int])] {
+        let rounds = Array(0...max(0, b.round))
+        let tallies = rounds.map { r in tally(rewind(b, to: r, start: nil), acts) }
+        return acts.enumerated().map { i, a in (a, tallies.map { $0[i].count }) }
+    }
+
     static func reportPrompt(_ e: Experiment) -> String {
         let branches = e.branches.map { b in
             """
             ## Branch \(b.name)\(b.parent.map { " (\($0))" } ?? "") — \(b.round) rounds
             Average mood by round: \(b.moodByRound.map { String(format: "%.2f", $0) }.joined(separator: ", "))
             Final moods: \(b.characters.map { "\($0.handle) \(String(format: "%.1f", $0.mood))" }.joined(separator: ", "))
-            Events: \(b.events.map { "r\($0.round) \($0.text)" }.joined(separator: "; "))
+            Events: \(b.events.map { "r\($0.round) \($0.text)" }.joined(separator: "; "))\(actionsAndPolls(b))
             Posts (id in brackets):
             \(b.posts.enumerated().map { "[\(b.name)\($0.offset + 1)] r\($0.element.round) @\($0.element.author): \($0.element.text)" }.joined(separator: "\n"))
             """
@@ -552,7 +590,8 @@ enum Engine {
         Reply with ONLY JSON, no prose:
         {"branches":[\(e.branches.map { "{\"name\":\"\($0.name)\",\"summary\":\"what this branch was, max 6 words\",\"metrics\":[{\"label\":\"short label\",\"value\":\"short value\"}]}" }.joined(separator: ","))],"headline":"what happened\(e.branches.count > 1 ? ", comparing branches" : ""), max 20 words","divergence":\(e.branches.count > 1 ? "\"1-2 sentences: where and why the branches split; if they didn't, say so\"" : "null"),"findings":[{"text":"a finding, max 35 words","refs":["post ids that back it, e.g. A3"]}],"questions":["2 questions worth investigating in the real world"]}
         Write exactly 3 findings. Each cites 1-3 post ids from the brackets above.
-        For each branch give 3 metrics that matter for this hypothesis, judged from the posts (e.g. "would pay": "4 / 6", "open objections": "2").
+        For each branch give 2 metrics that matter for this hypothesis, judged from the posts (e.g. "open objections": "2").
+        Counted metrics (actions taken, poll results) are added automatically: don't repeat them.
         """
     }
 }

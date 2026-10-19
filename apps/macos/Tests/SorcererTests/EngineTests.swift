@@ -271,3 +271,28 @@ final class PollTests: XCTestCase {
         XCTAssertEqual(Engine.rewind(b, to: 2, start: nil).polls?.count, 2)
     }
 }
+
+final class MetricsTests: XCTestCase {
+    func testCountedMetricsAndSeries() {
+        var b = Branch(name: "A", characters: ["ada", "bruno", "chen"].map { Persona(handle: $0, role: "user") })
+        b.round = 3
+        b.actions = [
+            Action(round: 1, who: "ada", act: "upgrade", why: ""),
+            Action(round: 2, who: "ada", act: "cancel", why: ""),
+            Action(round: 2, who: "bruno", act: "upgrade", why: ""),
+            Action(round: 3, who: "chen", act: Engine.leave, why: ""),
+        ]
+        var p1 = Poll(round: 1, question: "pay $14?", options: ["yes", "no"])
+        p1.answers = ["ada": .init(pick: "yes", why: ""), "bruno": .init(pick: "no", why: "")]
+        var p2 = Poll(round: 3, question: "pay $14?", options: ["yes", "no"])
+        p2.answers = ["ada": .init(pick: "no", why: ""), "bruno": .init(pick: "no", why: "")]
+        b.polls = [p1, p2]
+        var e = Experiment(name: "t", hypothesis: "x", context: "", branches: [b])
+        e.actions = ["upgrade", "cancel"]
+
+        XCTAssertEqual(Engine.counted(e, b).map { "\($0.label)=\($0.value)" },
+                       ["upgrade=1 / 3", "cancel=1 / 3", "left=1 / 3", "pay $14? · no=2 / 2"])
+        let series = Engine.actionSeries(b, ["upgrade", "cancel"])
+        XCTAssertEqual(series.map(\.counts), [[0, 1, 1, 1], [0, 0, 1, 1]])
+    }
+}
