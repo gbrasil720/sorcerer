@@ -32,7 +32,5 @@ if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-if (!rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(<RouterProvider router={router} />);
-}
+// The landing is prerendered into #app for crawlers; React replaces it on load.
+ReactDOM.createRoot(rootElement).render(<RouterProvider router={router} />);

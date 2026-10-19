@@ -31,7 +31,7 @@ function useStars() {
 }
 const LICENSE = "MIT";
 
-function Landing() {
+export function Landing() {
   return (
     <div
       id="top"
@@ -444,7 +444,9 @@ const HYPOTHESIS = "the rumor spreads on day one?";
 
 const usePrefersReducedMotion = () =>
   useMemo(
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     [],
   );
 
