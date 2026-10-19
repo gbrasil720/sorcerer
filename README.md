@@ -1,13 +1,21 @@
 <p align="center">
-  <img src="docs/icon.png" alt="Sorcerer" width="120">
+  <img src="docs/icon.png" alt="Sorcerer app icon: a pixel-art wizard hat" width="120">
 </p>
 
 <h1 align="center">Sorcerer</h1>
 
 <p align="center">
+  <a href="https://github.com/gbrasil720/sorcerer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/gbrasil720/sorcerer?color=F0773A&label=release"></a>
+  <img alt="macOS 15+" src="https://img.shields.io/badge/macOS-15%2B-ECEBE4?logo=apple&logoColor=white">
+  <img alt="Swift 6" src="https://img.shields.io/badge/Swift-6-F0773A?logo=swift&logoColor=white">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/gbrasil720/sorcerer?color=8F8E87"></a>
+  <a href="https://github.com/gbrasil720/sorcerer/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/gbrasil720/sorcerer/actions/workflows/ci.yml/badge.svg"></a>
+</p>
+
+<p align="center">
   <b>Create a community. Explore a hypothesis. Watch what happens.</b><br>
-  A native, local-first macOS app that brings small worlds of AI characters to life,<br>
-  powered by the AI subscriptions you already have.
+  A native, local-first macOS app that simulates communities of AI agents around a "what if…?" question,<br>
+  powered by the AI subscriptions you already have: Claude, ChatGPT (Codex) or Ollama.
 </p>
 
 <p align="center">
@@ -20,7 +28,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/feed-live.png" alt="A round being written live in the feed" width="900">
+  <img src="docs/screenshots/feed-live.png" alt="Sorcerer feed with AI characters posting and one typing live" width="900">
 </p>
 
 ---
@@ -63,8 +71,8 @@ A compact five-step setup: what Sorcerer is, how it works, which AI tools it fou
 (it checks that each one is actually signed in), your limits, and a first question to explore.
 
 <p align="center">
-  <img src="docs/screenshots/onboarding-welcome.png" width="49%">
-  <img src="docs/screenshots/onboarding-connect.png" width="49%">
+  <img src="docs/screenshots/onboarding-welcome.png" alt="Onboarding: welcome to Sorcerer" width="49%">
+  <img src="docs/screenshots/onboarding-connect.png" alt="Onboarding: Sorcerer finds the Claude, Codex and Ollama tools on your Mac" width="49%">
 </p>
 
 ### New experiment
@@ -75,7 +83,7 @@ Three steps, each with a live preview on the right.
 forum, group chat, town square, workplace), how many rounds and how fast. The side panel estimates the
 cost on your subscription and points to similar experiments you've already run.
 
-<img src="docs/screenshots/new-experiment-question.png" width="100%">
+<img src="docs/screenshots/new-experiment-question.png" alt="New experiment: write the what-if question and pick rules" width="100%">
 
 **② Teach the world.** Characters only react to what they know. Point Sorcerer at a GitHub repository
 (through your own `gh` login), a local folder, a website or files, and it writes a **brief**: every fact,
@@ -88,12 +96,12 @@ tagged with who knows it.
 Only docs are read. `.env` files, keys and credentials are never opened, `node_modules` and builds are
 skipped, and characters see the brief, never your code.
 
-<img src="docs/screenshots/new-experiment-brief.png" width="100%">
+<img src="docs/screenshots/new-experiment-brief.png" alt="New experiment: a brief of facts tagged public, insider or hidden" width="100%">
 
 **③ Community & start.** Summon people from your context or from a description, or reuse a community from
 another experiment. Edit anyone before round 1: roles, insiders, who's in.
 
-<img src="docs/screenshots/new-experiment-community.png" width="100%">
+<img src="docs/screenshots/new-experiment-community.png" alt="New experiment: summon and edit the community of AI characters" width="100%">
 
 ### Watching it happen
 
@@ -102,15 +110,15 @@ Rounds stream in live: finished posts appear one by one, and whoever is mid-sent
 react (agree / disagree) without posting, remember what happened, and listen most to the people they're
 tied to.
 
-<img src="docs/screenshots/feed.png" width="100%">
+<img src="docs/screenshots/feed.png" alt="Experiment feed with replies, reactions and mood per character" width="100%">
 
 Switch the feed to **world** to see the community as a map, with the ties between people and what each
 speaker said this round, or to **graph** for everyone's mood round by round and who the conversation
 revolves around.
 
 <p align="center">
-  <img src="docs/screenshots/world.png" width="49%">
-  <img src="docs/screenshots/graph.png" width="49%">
+  <img src="docs/screenshots/world.png" alt="World view: the community as a map of ties" width="49%">
+  <img src="docs/screenshots/graph.png" alt="Graph view: mood of each AI agent round by round" width="49%">
 </p>
 
 ### Characters
@@ -120,8 +128,8 @@ Every character has a profile: personality, interests, goals, ties and memories.
 duplicate them, or change how they look in a pixel-art avatar editor.
 
 <p align="center">
-  <img src="docs/screenshots/character.png" width="49%">
-  <img src="docs/screenshots/avatar-editor.png" width="49%">
+  <img src="docs/screenshots/character.png" alt="Character profile with an in-world chat" width="49%">
+  <img src="docs/screenshots/avatar-editor.png" alt="Pixel-art avatar editor" width="49%">
 </p>
 
 ### Branches & reports
@@ -130,7 +138,7 @@ Fork the world at any moment: same people, same memories, one different decision
 branches on a sentiment chart, explains where they diverged, and every finding cites the exact posts
 behind it. Click a citation to jump to that post.
 
-<img src="docs/screenshots/report.png" width="100%">
+<img src="docs/screenshots/report.png" alt="Report comparing branches with a sentiment chart and cited findings" width="100%">
 
 ### Getting around
 
@@ -138,8 +146,8 @@ One sidebar, the same tabs in every experiment (feed · characters · report · 
 and **⌘K** to go to anything: experiments, characters, branches and actions.
 
 <p align="center">
-  <img src="docs/screenshots/palette.png" width="49%">
-  <img src="docs/screenshots/settings-providers.png" width="49%">
+  <img src="docs/screenshots/palette.png" alt="Command palette to jump to experiments, characters and actions" width="49%">
+  <img src="docs/screenshots/settings-providers.png" alt="Settings: AI providers and model per provider" width="49%">
 </p>
 
 | Shortcut | |
@@ -224,7 +232,7 @@ sorcerer/
 Live at [sorcererapp.dev](https://sorcererapp.dev), deployed by Cloudflare Pages on every push to `main`
 (build: `bun install --frozen-lockfile && cd apps/web && bun run build`, output `apps/web/dist`).
 
-<img src="docs/screenshots/landing.png" width="100%">
+<img src="docs/screenshots/landing.png" alt="Sorcerer landing page" width="100%">
 
 ```bash
 bun install
