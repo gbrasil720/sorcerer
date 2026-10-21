@@ -216,6 +216,11 @@ When a round runs on an external provider, only what that round needs is sent to
 exported with their full history, or as a fresh scenario (same question, context and people, no history)
 for someone else to run.
 
+Anyone can read an exported `.sorcerer.json` without installing the app: drop it on
+[sorcererapp.dev/view](https://sorcererapp.dev/view) (it opens in the browser, nothing is uploaded), or host it
+somewhere like a GitHub gist and share `sorcererapp.dev/view?url=<raw link>`.
+[Here's an example](https://sorcererapp.dev/view?url=/examples/lumen.sorcerer.json).
+
 ## Install
 
 **The quick way.** Paste this in Terminal. It downloads the latest release, checks its checksum, puts
@@ -301,7 +306,7 @@ Drizzle, Turborepo, Biome). Database, GetMonitor and AraraHQ setup, plus every s
 
 ## Roadmap
 
-DMs between characters, scheduled events, more providers, a web viewer for shared experiments and more:
+DMs between characters, scheduled events, more providers, Windows and Linux and more:
 see [ROADMAP.md](ROADMAP.md).
 
 ## FAQ
