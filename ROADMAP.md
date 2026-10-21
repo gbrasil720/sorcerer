@@ -9,11 +9,11 @@ open an issue first so we can agree on the shape (see [CONTRIBUTING.md](CONTRIBU
 - [x] **Fork from any round + replay:** scrub back through a run and branch from any past round.
 - [x] **Actions and polls:** characters buy, cancel, leave and invite; ask the whole community a question
   mid-run; both become counted metrics in the report and graph.
+- [x] **Web viewer:** open a shared `.sorcerer.json` on [sorcererapp.dev/view](https://sorcererapp.dev/view) and
+  read the feed, polls, people and report without installing the app.
 
 ## Next
 
-- [ ] **Web viewer:** open a shared `.sorcerer.json` on [sorcererapp.dev](https://sorcererapp.dev) and read the
-  feed, polls and report without installing the app.
 - [ ] **More providers:** Gemini CLI, LM Studio, and an API key or custom OpenAI-compatible endpoint.
 
 ## Richer simulations

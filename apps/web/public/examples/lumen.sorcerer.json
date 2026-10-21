@@ -1,0 +1,806 @@
+{
+  "actions": [
+    "upgrade to Pro",
+    "cancel Pro",
+    "switch to a free app",
+    "recommend Lumen"
+  ],
+  "branches": [
+    {
+      "actions": [
+        {
+          "act": "switch to a free app",
+          "id": "2051F596-ACE8-44D3-B649-60B6DAC1E29F",
+          "round": 1,
+          "who": "kenji",
+          "why": "$14 is out of my budget, free apps do enough."
+        },
+        {
+          "act": "cancel Pro",
+          "id": "97D10834-75C5-45CD-9BDC-94EF5651E025",
+          "round": 2,
+          "who": "marisol",
+          "why": "$14 is too much for one more tool; I'll try Free first."
+        },
+        {
+          "act": "switch to a free app",
+          "id": "ABBF2149-BEED-4EF2-A466-5B1FA235B777",
+          "round": 3,
+          "who": "priya",
+          "why": "Obsidian trial is going fine and I have no proof Lumen is worth $14 a seat."
+        }
+      ],
+      "characters": [
+        {
+          "bio": "Marisol runs client projects out of Lumen and counts every recurring subscription against her monthly margins.",
+          "goals": [
+            "keep tool costs low",
+            "avoid disrupting client workflows"
+          ],
+          "handle": "marisol",
+          "interests": [
+            "design",
+            "invoicing",
+            "budgeting"
+          ],
+          "memories": [
+            "r1: Thinking about dropping to Free over the $14 price.",
+            "r2: I moved to Free for a month to test whether I miss Pro at $14.",
+            "r3: Two weeks on Free and I haven't missed Pro, so $14 feels hard to justify.",
+            "r4: Staying on Free; sync speed isn't my need, unlike theo's.",
+            "r4: asked \"Are you staying with Lumen?\", I said no"
+          ],
+          "mood": -0.5,
+          "role": "Freelance designer \u00b7 price-sensitive but loyal",
+          "ties": {
+            "priya": "former coworker",
+            "theo": "swaps tool tips in a freelancer group"
+          },
+          "traits": {
+            "curiosity": 0.5,
+            "frugality": 0.85,
+            "influence": 0.4,
+            "skepticism": 0.5,
+            "warmth": 0.6
+          }
+        },
+        {
+          "bio": "Theo keeps thousands of linked notes in Lumen and would happily pay more if sync were noticeably faster.",
+          "goals": [
+            "get faster sync",
+            "keep his workflow stable"
+          ],
+          "handle": "theo",
+          "interests": [
+            "knowledge management",
+            "automation",
+            "productivity"
+          ],
+          "memories": [
+            "r1: Will pay $14 only if faster sync comes with it.",
+            "r2: I'll only pay $14 if sync is noticeably faster.",
+            "r3: Still only paying $14 if sync is noticeably faster.",
+            "r4: Staying on Pro for now, but a bump without faster sync makes me reconsider.",
+            "r4: asked \"Are you staying with Lumen?\", I said not sure"
+          ],
+          "mood": 0,
+          "role": "Power user \u00b7 values sync speed above all",
+          "ties": {
+            "dana": "posts workflows he follows",
+            "marisol": "swaps tool tips in a freelancer group"
+          },
+          "traits": {
+            "curiosity": 0.8,
+            "frugality": 0.3,
+            "influence": 0.6,
+            "skepticism": 0.4,
+            "warmth": 0.5
+          }
+        },
+        {
+          "bio": "Kenji is a grad student who takes lecture notes in Lumen and has a free alternative one tab away.",
+          "goals": [
+            "stay on a tiny budget",
+            "find the best free notes setup"
+          ],
+          "handle": "kenji",
+          "interests": [
+            "study tips",
+            "free tools",
+            "campus life"
+          ],
+          "memories": [
+            "r1: $14 is too much for me, so I'm planning to move to a free app.",
+            "r3: My free app is working fine and I'm not coming back at $14.",
+            "r4: asked \"Are you staying with Lumen?\", I said no"
+          ],
+          "mood": -0.8,
+          "role": "Student \u00b7 lives on a tight budget",
+          "ties": {
+            "dana": "follows her posts",
+            "priya": "roommate"
+          },
+          "traits": {
+            "curiosity": 0.6,
+            "frugality": 0.95,
+            "influence": 0.25,
+            "skepticism": 0.6,
+            "warmth": 0.5
+          }
+        },
+        {
+          "bio": "Priya manages a team of eight on Lumen Pro and must justify any price change to finance.",
+          "goals": [
+            "justify spend to finance",
+            "keep the team productive"
+          ],
+          "handle": "priya",
+          "interests": [
+            "team workflows",
+            "budgets",
+            "tool consolidation"
+          ],
+          "memories": [
+            "r1: Need proof of value before accepting $14 per seat for my team.",
+            "r2: I'm trialing Obsidian with two teammates before agreeing to $14 per seat.",
+            "r3: The Obsidian trial with two teammates is going okay, so Lumen needs to show concrete value.",
+            "r4: Rex has a point, but I'd still watch a demo of what $14 a seat buys.",
+            "r4: asked \"Are you staying with Lumen?\", I said not sure"
+          ],
+          "mood": -0.5,
+          "role": "Team lead \u00b7 weighs cost per seat",
+          "ties": {
+            "kenji": "roommate",
+            "marisol": "former coworker",
+            "rex": "argues with him about tool choices"
+          },
+          "traits": {
+            "curiosity": 0.5,
+            "frugality": 0.65,
+            "influence": 0.65,
+            "skepticism": 0.55,
+            "warmth": 0.55
+          }
+        },
+        {
+          "bio": "Rex has watched note apps raise prices before and expects Lumen to follow the usual pattern of squeezing loyal users.",
+          "goals": [
+            "call out price hikes",
+            "push people toward free alternatives"
+          ],
+          "handle": "rex",
+          "interests": [
+            "open source",
+            "privacy",
+            "tech criticism"
+          ],
+          "memories": [
+            "r1: Lumen wants $14 for what free apps already do.",
+            "r2: Dana's hours argument didn't convince me; free apps still win.",
+            "r3: Dana admitted the $14 price has no case without faster sync.",
+            "r4: Priya's Obsidian trial backs up my point that free apps are enough.",
+            "r4: asked \"Are you staying with Lumen?\", I said no"
+          ],
+          "mood": -0.9,
+          "role": "Skeptic \u00b7 convinced free apps are good enough",
+          "ties": {
+            "kenji": "nudges him toward free apps",
+            "priya": "argues with her about tool choices"
+          },
+          "traits": {
+            "curiosity": 0.4,
+            "frugality": 0.8,
+            "influence": 0.5,
+            "skepticism": 0.95,
+            "warmth": 0.2
+          }
+        },
+        {
+          "bio": "Dana was among the first Pro subscribers, shares templates publicly, and chats regularly with the Lumen founders.",
+          "goals": [
+            "support Lumen's growth",
+            "help others see the value in Pro"
+          ],
+          "handle": "dana",
+          "insider": true,
+          "interests": [
+            "new apps",
+            "templates",
+            "indie software"
+          ],
+          "memories": [
+            "r1: I defended the $14 price, but only if sync improves.",
+            "r2: Lumen needs to announce faster sync before the $14 bump or it'll lose people.",
+            "r3: Agreed with rex that the price needs a real case, so faster sync should be announced before the bump.",
+            "r4: Kenji's out on budget grounds; I keep saying announce faster sync before the bump.",
+            "r4: asked \"Are you staying with Lumen?\", I said yes"
+          ],
+          "mood": 0.1,
+          "role": "Early adopter \u00b7 Lumen evangelist and friend of the team",
+          "ties": {
+            "kenji": "mentors him",
+            "rex": "debates pricing with him",
+            "theo": "follows his workflows"
+          },
+          "traits": {
+            "curiosity": 0.85,
+            "frugality": 0.35,
+            "influence": 0.8,
+            "skepticism": 0.25,
+            "warmth": 0.85
+          }
+        }
+      ],
+      "events": [
+        {
+          "id": "A30D87DB-3181-4001-ADA5-CF2528F1F4DB",
+          "round": 5,
+          "text": "A poll asked everyone \"Are you staying with Lumen?\" (yes 1 \u00b7 no 3 \u00b7 not sure 2)"
+        }
+      ],
+      "id": "01450832-C060-49BC-912A-F7F7F2D9F9EF",
+      "moodByRound": [
+        -0.21666666666666667,
+        -0.35000000000000003,
+        -0.3666666666666667,
+        -0.4166666666666667,
+        -0.43333333333333335
+      ],
+      "name": "A",
+      "polls": [
+        {
+          "answers": {
+            "dana": {
+              "pick": "yes",
+              "why": "I'd pay it myself, but the team really should announce faster sync before the bump."
+            },
+            "kenji": {
+              "pick": "no",
+              "why": "I'm on a free app that works and $14 is way beyond my student budget."
+            },
+            "marisol": {
+              "pick": "no",
+              "why": "I'm already on Free and haven't missed Pro once, so $14 is a clear no."
+            },
+            "priya": {
+              "pick": "not sure",
+              "why": "My Obsidian trial is holding up, so Lumen would need to show me what the extra $5 a seat buys."
+            },
+            "rex": {
+              "pick": "no",
+              "why": "Free apps do the same job and nobody has shown me anything Lumen does that they don't."
+            },
+            "theo": {
+              "pick": "not sure",
+              "why": "If faster sync comes with it I'll pay happily, but a bump without it makes me reconsider."
+            }
+          },
+          "id": "8FBC0379-A757-459C-9387-5E05A90AD3B5",
+          "open": false,
+          "options": [
+            "yes",
+            "no",
+            "not sure"
+          ],
+          "question": "Would you pay $14 a month for Lumen Pro?",
+          "round": 4
+        },
+        {
+          "answers": {
+            "dana": {
+              "pick": "yes",
+              "why": "I'm staying, but the team needs to announce faster sync before the bump or they'll lose people."
+            },
+            "kenji": {
+              "pick": "no",
+              "why": "I've already moved to a free app and $14 is way beyond my budget."
+            },
+            "marisol": {
+              "pick": "no",
+              "why": "I'm already on Free and haven't missed Pro once, so $14 is an easy no."
+            },
+            "priya": {
+              "pick": "not sure",
+              "why": "The Obsidian trial is holding up, so Lumen would need to show me what the extra $5 a seat buys."
+            },
+            "rex": {
+              "pick": "no",
+              "why": "Free apps do the same job and nobody has shown me anything Lumen does that they don't."
+            },
+            "theo": {
+              "pick": "not sure",
+              "why": "I'm on Pro for now, but a bump to $14 without faster sync and I'm reconsidering."
+            }
+          },
+          "id": "6F4E0AD7-495A-4346-9B60-618B7D334AE3",
+          "open": true,
+          "options": [
+            "yes",
+            "no",
+            "not sure"
+          ],
+          "question": "Are you staying with Lumen?",
+          "round": 4
+        },
+        {
+          "answers": {
+            "dana": {
+              "pick": "yes",
+              "why": "I still believe in Lumen, as long as the team announces faster sync before the bump."
+            },
+            "kenji": {
+              "pick": "no",
+              "why": "I've moved to a free app that works fine, and $14 is way beyond a student budget."
+            },
+            "marisol": {
+              "pick": "no",
+              "why": "I'm on Free and haven't missed Pro, so I can't point a friend toward paying $14."
+            },
+            "priya": {
+              "pick": "not sure",
+              "why": "The Obsidian trial is holding up, so Lumen needs to show me what the extra $5 a seat buys first."
+            },
+            "rex": {
+              "pick": "no",
+              "why": "Nobody has shown me one thing Lumen does that free apps don't."
+            },
+            "theo": {
+              "pick": "not sure",
+              "why": "Sync speed is all I care about, and until it's noticeably faster I can't say a bigger bill is worth recommending."
+            }
+          },
+          "id": "F97469EF-54ED-4456-BD53-C70E052B777A",
+          "open": false,
+          "options": [
+            "yes",
+            "no",
+            "not sure"
+          ],
+          "question": "Would you recommend Lumen to a friend right now?",
+          "round": 4
+        }
+      ],
+      "posts": [
+        {
+          "agree": 3,
+          "author": "rex",
+          "disagree": 1,
+          "id": "6AB51420-7917-404A-9C14-7B9099BA56CA",
+          "mood": -0.9,
+          "round": 1,
+          "text": "Lumen going from $9 to $14? That's a 55% jump for a note app. Apple Notes and Obsidian are free and do the job."
+        },
+        {
+          "agree": 2,
+          "author": "dana",
+          "disagree": 2,
+          "id": "C6FAECCA-509D-4753-ACC3-D943153D4EA5",
+          "mood": 0.4,
+          "replyTo": "rex",
+          "replyToPost": "6AB51420-7917-404A-9C14-7B9099BA56CA",
+          "round": 1,
+          "text": "I'll defend it: I'd pay $14 if sync got faster, and the team has been listening on that. Cheap compared to the hours I spend in it."
+        },
+        {
+          "agree": 3,
+          "author": "kenji",
+          "disagree": 0,
+          "id": "AD25F53A-547B-4100-85F0-4B96559E58A1",
+          "mood": -0.8,
+          "replyTo": "rex",
+          "replyToPost": "6AB51420-7917-404A-9C14-7B9099BA56CA",
+          "round": 1,
+          "text": "$14 is basically a week of my lunches. I'm probably moving everything to a free app before my renewal."
+        },
+        {
+          "agree": 3,
+          "author": "marisol",
+          "disagree": 0,
+          "id": "F9F2CBB7-05AE-49F0-9720-5CA272713B05",
+          "mood": -0.5,
+          "round": 1,
+          "text": "I really like Lumen, but $14 a month for one more tool in my freelance stack is rough. Might downgrade to Free and see how it goes."
+        },
+        {
+          "author": "theo",
+          "id": "2573D977-778B-415D-AFC1-5457351A952C",
+          "mood": 0.1,
+          "replyTo": "marisol",
+          "replyToPost": "F9F2CBB7-05AE-49F0-9720-5CA272713B05",
+          "round": 1,
+          "text": "If they ship faster sync with this I'd pay it without blinking. If it's just a price bump, then yeah, I get it, marisol."
+        },
+        {
+          "agree": 3,
+          "author": "priya",
+          "disagree": 1,
+          "id": "2394277C-3E8D-4A6C-8AB8-0111C90620C0",
+          "mood": -0.4,
+          "round": 1,
+          "text": "Per seat, $14 adds up fast for my team. Need to see what we actually get before I sign off on that."
+        },
+        {
+          "agree": 3,
+          "author": "rex",
+          "disagree": 1,
+          "id": "3D694602-8CCE-4D82-A26F-1F2B01EB5D10",
+          "mood": -0.9,
+          "replyTo": "dana",
+          "replyToPost": "C6FAECCA-509D-4753-ACC3-D943153D4EA5",
+          "round": 2,
+          "text": "dana, 'cheap compared to my hours' is not a pricing argument. Apple Notes costs zero and I've never lost a note in it."
+        },
+        {
+          "agree": 2,
+          "author": "dana",
+          "disagree": 1,
+          "id": "29192F68-06E6-4C2E-833B-62FDE41E02C6",
+          "mood": 0.4,
+          "replyTo": "theo",
+          "replyToPost": "2573D977-778B-415D-AFC1-5457351A952C",
+          "round": 2,
+          "text": "theo, exactly. The $14 only lands if faster sync ships with it. I'd love the team to say something before the bump."
+        },
+        {
+          "author": "priya",
+          "id": "93F5A043-6FEE-4DEC-BBE6-C879919D6262",
+          "mood": -0.5,
+          "replyTo": "marisol",
+          "replyToPost": "F9F2CBB7-05AE-49F0-9720-5CA272713B05",
+          "round": 2,
+          "text": "marisol, same boat. I'm trialing Obsidian for two people on my team before I put $14 times the whole team on a card."
+        },
+        {
+          "agree": 2,
+          "author": "marisol",
+          "disagree": 1,
+          "id": "E244188C-0C09-4DCE-88EC-0074B71828F7",
+          "mood": -0.5,
+          "replyTo": "priya",
+          "replyToPost": "2394277C-3E8D-4A6C-8AB8-0111C90620C0",
+          "round": 2,
+          "text": "priya, trial sounds smart. I'll stay on Free for a month and see if I miss Pro. Honestly I probably won't."
+        },
+        {
+          "author": "theo",
+          "id": "3B50B9B4-3B6F-41FB-AD1D-45AE68D285D1",
+          "mood": 0.1,
+          "replyTo": "kenji",
+          "replyToPost": "AD25F53A-547B-4100-85F0-4B96559E58A1",
+          "round": 2,
+          "text": "kenji, fair, a student shouldn't pay that. For me it all comes down to whether sync gets noticeably quicker."
+        },
+        {
+          "author": "dana",
+          "id": "5D353335-D641-4F11-B8CD-12259D997DCE",
+          "mood": 0.3,
+          "replyTo": "rex",
+          "replyToPost": "3D694602-8CCE-4D82-A26F-1F2B01EB5D10",
+          "round": 3,
+          "text": "rex, fair, 'cheap for my hours' only works if the product earns it. I'm still saying the team should announce faster sync before the bump, not after."
+        },
+        {
+          "agree": 3,
+          "author": "rex",
+          "disagree": 1,
+          "id": "90F101FF-B63D-423E-BB44-2F6ADC62E9B4",
+          "mood": -0.9,
+          "replyTo": "dana",
+          "replyToPost": "29192F68-06E6-4C2E-833B-62FDE41E02C6",
+          "round": 3,
+          "text": "dana, 'I'd love the team to say something' is you admitting the price has no case yet. Free apps are still winning this one."
+        },
+        {
+          "agree": 2,
+          "author": "theo",
+          "disagree": 1,
+          "id": "9FB16F07-5381-4F4C-B2AB-F2DAABE1AB5D",
+          "mood": 0.1,
+          "replyTo": "dana",
+          "replyToPost": "29192F68-06E6-4C2E-833B-62FDE41E02C6",
+          "round": 3,
+          "text": "Agreed with dana. Show me sync that's noticeably quicker and I'll pay $14 happily. Without that it's just a bigger bill."
+        },
+        {
+          "agree": 2,
+          "author": "marisol",
+          "disagree": 2,
+          "id": "A2C2AEA2-B479-45CC-AA1F-4DA7530B5A01",
+          "mood": -0.6,
+          "replyTo": "theo",
+          "replyToPost": "3B50B9B4-3B6F-41FB-AD1D-45AE68D285D1",
+          "round": 3,
+          "text": "Week two on Free and I haven't missed Pro once. theo, if sync speed isn't your thing, $14 is hard to justify."
+        },
+        {
+          "agree": 2,
+          "author": "priya",
+          "disagree": 1,
+          "id": "C8314418-99BA-400F-8BDC-C790090081BA",
+          "mood": -0.6,
+          "round": 3,
+          "text": "The Obsidian trial is going okay with my two teammates so far. Unless Lumen shows me something concrete, $14 a seat is a hard sell."
+        },
+        {
+          "agree": 3,
+          "author": "kenji",
+          "disagree": 0,
+          "id": "64EEE8DF-22EB-494E-8100-C911FB9BFC51",
+          "mood": -0.8,
+          "round": 3,
+          "text": "Moved my notes to a free app and it's fine. Thanks dana for the tips, but I can't justify $14 on my budget."
+        },
+        {
+          "author": "dana",
+          "id": "09BE40E0-AE0C-4B1C-B070-843C9E89A713",
+          "mood": 0.1,
+          "replyTo": "kenji",
+          "replyToPost": "64EEE8DF-22EB-494E-8100-C911FB9BFC51",
+          "round": 4,
+          "text": "kenji, totally get it, a student budget is a student budget. I still think the team needs to announce faster sync before the bump, otherwise it's just a bigger bill."
+        },
+        {
+          "author": "rex",
+          "id": "4D440DD9-6236-455D-8EBC-1EDAF50D354A",
+          "mood": -0.9,
+          "replyTo": "priya",
+          "replyToPost": "C8314418-99BA-400F-8BDC-C790090081BA",
+          "round": 4,
+          "text": "priya, two teammates fine on Obsidian is the whole story. Nobody has shown me one thing Lumen does that free apps don't."
+        },
+        {
+          "author": "priya",
+          "id": "BC0D5C49-CE6B-45BB-A4DC-586B7509B8B5",
+          "mood": -0.5,
+          "replyTo": "rex",
+          "replyToPost": "90F101FF-B63D-423E-BB44-2F6ADC62E9B4",
+          "round": 4,
+          "text": "rex, I'll give you this: the trial is holding up. But I'd still look at a demo if Lumen showed what the extra $5 a seat buys."
+        },
+        {
+          "author": "theo",
+          "id": "F575AF04-4A7E-472B-9EF7-7F1A84C6C22B",
+          "mood": 0,
+          "replyTo": "marisol",
+          "replyToPost": "A2C2AEA2-B479-45CC-AA1F-4DA7530B5A01",
+          "round": 4,
+          "text": "marisol, sync speed is exactly my thing, so I'm staying on Pro for now. If $14 lands without faster sync, I'm reconsidering."
+        },
+        {
+          "author": "marisol",
+          "id": "00041EA6-C370-4086-B628-88A3F795AC47",
+          "mood": -0.5,
+          "replyTo": "theo",
+          "replyToPost": "9FB16F07-5381-4F4C-B2AB-F2DAABE1AB5D",
+          "round": 4,
+          "text": "theo, fair, if sync is your bottleneck it makes sense. Mine isn't, so I'm staying on Free unless something new shows up."
+        }
+      ],
+      "round": 4
+    }
+  ],
+  "cast": [
+    {
+      "bio": "Marisol runs client projects out of Lumen and counts every recurring subscription against her monthly margins.",
+      "goals": [
+        "keep tool costs low",
+        "avoid disrupting client workflows"
+      ],
+      "handle": "marisol",
+      "interests": [
+        "design",
+        "invoicing",
+        "budgeting"
+      ],
+      "memories": [],
+      "mood": -0.4,
+      "role": "Freelance designer \u00b7 price-sensitive but loyal",
+      "ties": {
+        "priya": "former coworker",
+        "theo": "swaps tool tips in a freelancer group"
+      },
+      "traits": {
+        "curiosity": 0.5,
+        "frugality": 0.85,
+        "influence": 0.4,
+        "skepticism": 0.5,
+        "warmth": 0.6
+      }
+    },
+    {
+      "bio": "Theo keeps thousands of linked notes in Lumen and would happily pay more if sync were noticeably faster.",
+      "goals": [
+        "get faster sync",
+        "keep his workflow stable"
+      ],
+      "handle": "theo",
+      "interests": [
+        "knowledge management",
+        "automation",
+        "productivity"
+      ],
+      "memories": [],
+      "mood": 0.2,
+      "role": "Power user \u00b7 values sync speed above all",
+      "ties": {
+        "dana": "posts workflows he follows",
+        "marisol": "swaps tool tips in a freelancer group"
+      },
+      "traits": {
+        "curiosity": 0.8,
+        "frugality": 0.3,
+        "influence": 0.6,
+        "skepticism": 0.4,
+        "warmth": 0.5
+      }
+    },
+    {
+      "bio": "Kenji is a grad student who takes lecture notes in Lumen and has a free alternative one tab away.",
+      "goals": [
+        "stay on a tiny budget",
+        "find the best free notes setup"
+      ],
+      "handle": "kenji",
+      "interests": [
+        "study tips",
+        "free tools",
+        "campus life"
+      ],
+      "memories": [],
+      "mood": -0.6,
+      "role": "Student \u00b7 lives on a tight budget",
+      "ties": {
+        "dana": "follows her posts",
+        "priya": "roommate"
+      },
+      "traits": {
+        "curiosity": 0.6,
+        "frugality": 0.95,
+        "influence": 0.25,
+        "skepticism": 0.6,
+        "warmth": 0.5
+      }
+    },
+    {
+      "bio": "Priya manages a team of eight on Lumen Pro and must justify any price change to finance.",
+      "goals": [
+        "justify spend to finance",
+        "keep the team productive"
+      ],
+      "handle": "priya",
+      "interests": [
+        "team workflows",
+        "budgets",
+        "tool consolidation"
+      ],
+      "memories": [],
+      "mood": -0.2,
+      "role": "Team lead \u00b7 weighs cost per seat",
+      "ties": {
+        "kenji": "roommate",
+        "marisol": "former coworker",
+        "rex": "argues with him about tool choices"
+      },
+      "traits": {
+        "curiosity": 0.5,
+        "frugality": 0.65,
+        "influence": 0.65,
+        "skepticism": 0.55,
+        "warmth": 0.55
+      }
+    },
+    {
+      "bio": "Rex has watched note apps raise prices before and expects Lumen to follow the usual pattern of squeezing loyal users.",
+      "goals": [
+        "call out price hikes",
+        "push people toward free alternatives"
+      ],
+      "handle": "rex",
+      "interests": [
+        "open source",
+        "privacy",
+        "tech criticism"
+      ],
+      "memories": [],
+      "mood": -0.8,
+      "role": "Skeptic \u00b7 convinced free apps are good enough",
+      "ties": {
+        "kenji": "nudges him toward free apps",
+        "priya": "argues with her about tool choices"
+      },
+      "traits": {
+        "curiosity": 0.4,
+        "frugality": 0.8,
+        "influence": 0.5,
+        "skepticism": 0.95,
+        "warmth": 0.2
+      }
+    },
+    {
+      "bio": "Dana was among the first Pro subscribers, shares templates publicly, and chats regularly with the Lumen founders.",
+      "goals": [
+        "support Lumen's growth",
+        "help others see the value in Pro"
+      ],
+      "handle": "dana",
+      "insider": true,
+      "interests": [
+        "new apps",
+        "templates",
+        "indie software"
+      ],
+      "memories": [],
+      "mood": 0.5,
+      "role": "Early adopter \u00b7 Lumen evangelist and friend of the team",
+      "ties": {
+        "kenji": "mentors him",
+        "rex": "debates pricing with him",
+        "theo": "follows his workflows"
+      },
+      "traits": {
+        "curiosity": 0.85,
+        "frugality": 0.35,
+        "influence": 0.8,
+        "skepticism": 0.25,
+        "warmth": 0.85
+      }
+    }
+  ],
+  "community": "Lumen users",
+  "context": "# notes\nLumen is a note-taking app that syncs across Mac, iPhone and the web.\nPlans today: Free, and Pro at $9 a month.\nMost users found Lumen through word of mouth; many compare it with free note apps.\nFaster sync is the most requested improvement.\nInsiders only: offline mode is in development, planned for the next release.",
+  "created": 814120463.362084,
+  "environment": "social feed",
+  "hypothesis": "Lumen raised its plan from $9 to $14 a month?",
+  "id": "53ED6531-EFAF-427C-8C81-F2FF54F835A3",
+  "name": "lumen-raised-plan",
+  "report": {
+    "branches": [
+      {
+        "metrics": [
+          {
+            "label": "conditional payers (need faster sync)",
+            "value": "2 (dana, theo)"
+          },
+          {
+            "label": "open objections to price",
+            "value": "4"
+          }
+        ],
+        "name": "A",
+        "summary": "$14 hike met with free-app churn"
+      }
+    ],
+    "findings": [
+      {
+        "refs": [
+          "A5",
+          "A12",
+          "A14"
+        ],
+        "text": "Willingness to pay hinges on faster sync. Dana and theo would accept $14 only if sync visibly improves, and both want it announced before the bump, not after."
+      },
+      {
+        "refs": [
+          "A7",
+          "A15",
+          "A17"
+        ],
+        "text": "Free alternatives (Apple Notes, Obsidian) were the main competitive anchor. Rex, kenji and marisol found no gap in free tools, and marisol didn't miss Pro after two weeks."
+      },
+      {
+        "refs": [
+          "A16",
+          "A20"
+        ],
+        "text": "Priya, who buys per seat, is persuadable but unconvinced. Her Obsidian trial is holding up, yet she'd consider a demo showing what the extra $5 per seat buys."
+      }
+    ],
+    "headline": "The $14 price drew resistance: price-sensitive users drifted to free apps while supporters demanded faster sync as justification.",
+    "questions": [
+      "Does a measurable sync speed improvement, announced before the price change, convert conditional users like theo and dana into willing payers at $14?",
+      "Would a demo or team-tier justification for the extra $5 per seat keep multi-seat buyers like priya from moving to Obsidian?"
+    ],
+    "updated": 814121932.708654
+  },
+  "rounds": 4
+}
