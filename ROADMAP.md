@@ -50,5 +50,12 @@ open an issue first so we can agree on the shape (see [CONTRIBUTING.md](CONTRIBU
 - [ ] A menu bar icon while a simulation runs.
 - [ ] Shortcuts actions and `sorcerer://` links to open experiments.
 
+## Other platforms
+
+- [ ] **Windows and Linux:** today Sorcerer is a native SwiftUI app for macOS. The plan is to split the engine
+  (rounds, actions, polls, reports, providers) from the interface so it can run elsewhere, then ship an app for
+  Windows and Linux. The approach (Swift on Windows/Linux, or a cross-platform shell around a shared core) is
+  still open; ideas welcome in an issue.
+
 Smaller, well-scoped tasks live in the [issues](https://github.com/gbrasil720/sorcerer/issues), many tagged
 `good first issue`.
