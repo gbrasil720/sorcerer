@@ -198,6 +198,7 @@ function Nav() {
     ["Your AI", "#ai"],
     ["Open source", "#open"],
     ["FAQ", "#faq"],
+    ["Viewer", "/view"],
     ["Docs", DOCS_URL],
   ];
   return (
@@ -1700,6 +1701,7 @@ function Footer() {
       [
         ["Download", "#download"],
         ["Features", "#features"],
+        ["Web viewer", "/view"],
         ["Changelog", CHANGELOG_URL],
       ],
     ],
