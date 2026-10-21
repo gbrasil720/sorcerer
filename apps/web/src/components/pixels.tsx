@@ -94,7 +94,16 @@ export function Pixels({
 }
 /* Deterministic 16×16 portrait per handle; same algorithm and palettes as Avatar in the macOS app. */
 const AV = {
-  hairs: ["#1e1a17", "#5a3a22", "#c08a4a", "#e6d27a", "#d9d6cf", "#f0773a"],
+  // The 7th color only comes from the app's avatar editor; default faces pick from the first 6.
+  hairs: [
+    "#1e1a17",
+    "#5a3a22",
+    "#c08a4a",
+    "#e6d27a",
+    "#d9d6cf",
+    "#f0773a",
+    "#6f7fe0",
+  ],
   skins: ["#f4d9c0", "#e2b48c", "#c48a62", "#9a6440", "#6b4429"],
   outfits: ["#2a2724", "#f0773a", "#3f6b5c", "#3b4a8c", "#7a3346", "#e9e6df"],
   bgs: ["#3a2a1f", "#23221f", "#1c2733", "#1f2a20", "#2a1f2a"],
@@ -108,29 +117,69 @@ function fnv(s: string) {
   return h;
 }
 
+/** A face picked in the app's avatar editor, as saved in experiment files (`Persona.look`). */
+export type Look = {
+  hair: number;
+  hairColor: number;
+  skin: number;
+  outfit: number;
+  background: number;
+  accent: number;
+  accessories: string[];
+};
+
+/** The face a handle gets until someone edits it; same rules as `Look.derived` in the app. */
+function derived(name: string): Look {
+  const h = fnv(name);
+  const at = (shift: number, mod: number) => (h >>> shift) % mod;
+  const glasses = at(18, 3) === 0;
+  const beanie = !glasses && at(20, 4) === 0;
+  const beard = at(24, 5) === 0;
+  const acc = {
+    glasses,
+    beanie,
+    headphones: !beanie && at(22, 6) === 0,
+    beard,
+    earring: at(26, 5) === 0,
+    scarf: !beard && at(28, 6) === 0,
+  };
+  return {
+    hair: h % 5,
+    hairColor: at(3, 6),
+    skin: at(6, 5),
+    outfit: at(9, 6),
+    background: at(12, 5),
+    accent: at(15, 5),
+    accessories: Object.keys(acc).filter((k) => acc[k as keyof typeof acc]),
+  };
+}
+
 export function Avatar({
   name,
+  look,
   size = 16,
   className = "",
 }: {
   name: string;
+  look?: Look | null;
   size?: number;
   className?: string;
 }) {
-  const h = fnv(name);
-  const at = (shift: number, mod: number) => (h >>> shift) % mod;
-  const style = h % 5; // short, long, bun, buzz, curly
-  const hair = AV.hairs[at(3, 6)];
-  const skin = AV.skins[at(6, 5)];
-  const outfit = AV.outfits[at(9, 6)];
-  const bg = AV.bgs[at(12, 5)];
-  const accent = AV.accents[at(15, 5)];
-  const glasses = at(18, 3) === 0;
-  const beanie = !glasses && at(20, 4) === 0;
-  const headphones = !beanie && at(22, 6) === 0;
-  const beard = at(24, 5) === 0;
-  const earring = at(26, 5) === 0;
-  const scarf = !beard && at(28, 6) === 0;
+  const l = look ?? derived(name);
+  const pick = (list: string[], i: number) => list[i] ?? list[0];
+  const has = (a: string) => l.accessories.includes(a);
+  const style = l.hair; // short, long, bun, buzz, curly
+  const hair = pick(AV.hairs, l.hairColor);
+  const skin = pick(AV.skins, l.skin);
+  const outfit = pick(AV.outfits, l.outfit);
+  const bg = pick(AV.bgs, l.background);
+  const accent = pick(AV.accents, l.accent);
+  const glasses = has("glasses");
+  const beanie = has("beanie");
+  const headphones = has("headphones");
+  const beard = has("beard");
+  const earring = has("earring");
+  const scarf = has("scarf");
   const dark = "#1a1714";
 
   const px: [number, number, string, number][] = [];
