@@ -16,11 +16,12 @@
 - Characters: profiles, 1:1 chat off the record or in-world, persona editing, pixel-art avatar editor
 - Branches: fork the world and compare futures; reports with a sentiment chart and findings that cite the exact posts
 - Usage limits: reads your Claude 5-hour and weekly windows and pauses before you hit them
-- Export experiments with full history or as a fresh scenario
+- Export experiments with full history or as a fresh scenario; anyone can read an exported .sorcerer.json in the browser at https://sorcererapp.dev/view without installing the app
 
 ## Links
 
 - [Download Sorcerer.dmg](https://github.com/gbrasil720/sorcerer/releases/latest/download/Sorcerer.dmg): latest release
 - [Source code and README](https://github.com/gbrasil720/sorcerer): install guide, build steps, keyboard shortcuts
+- [Web viewer](https://sorcererapp.dev/view): open a shared .sorcerer.json in the browser; nothing is uploaded
 - [Releases and changelog](https://github.com/gbrasil720/sorcerer/releases)
 - [License (MIT)](https://github.com/gbrasil720/sorcerer/blob/main/LICENSE)
