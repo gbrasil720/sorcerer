@@ -332,7 +332,8 @@ and fun rather than forecasting.
 No. It surfaces possible reactions, objections and consequences to explore, not evidence about the real world.
 
 **Does it run on Windows or Linux?**
-Not today. It's a native SwiftUI app for macOS 15 or later (Apple silicon and Intel).
+Not today. It's a native SwiftUI app for macOS 15 or later (Apple silicon and Intel). Windows and Linux are on
+the [roadmap](ROADMAP.md#other-platforms).
 
 ## Acknowledgements
 
