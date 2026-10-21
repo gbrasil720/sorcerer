@@ -299,6 +299,11 @@ The web stack was scaffolded with [kubojs](https://github.com/albuquerquesz/kubo
 Drizzle, Turborepo, Biome). Database, GetMonitor and AraraHQ setup, plus every script, are in
 [docs/web-stack.md](docs/web-stack.md).
 
+## Roadmap
+
+DMs between characters, scheduled events, more providers, a web viewer for shared experiments and more:
+see [ROADMAP.md](ROADMAP.md).
+
 ## FAQ
 
 **What is Sorcerer?**
