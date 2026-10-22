@@ -25,7 +25,8 @@ Where things live in `apps/macos/Sources/Sorcerer/`:
 
 | File | What's in it |
 | --- | --- |
-| `AI.swift` | talks to the `claude` and `codex` CLIs and to Ollama; parses replies, streaming and usage limits |
+| `AI.swift` | talks to Claude Code, Codex, Gemini CLI and Ollama; parses replies, streaming and usage limits |
+| `Endpoints.swift` | server URL validation, compatible API requests and endpoint keys in Keychain |
 | `Engine.swift` | the simulation: rounds, posts, reactions, actions, polls |
 | `Models.swift` | data types, environments and the experiment templates (`Template.all`) |
 | `Store.swift` / `Workspace.swift` | app state and persistence |
@@ -88,7 +89,7 @@ Database, GetMonitor and other setup notes are in [docs/web-stack.md](docs/web-s
 - Run `bun run check` for TypeScript changes. For Swift, follow the style of the surrounding code.
 - Add or update tests in `apps/macos/Tests/SorcererTests` when you change engine, parsing or navigation logic.
 - Write short, imperative commit messages (e.g. `Add Ollama host setting`). Link the issue in the PR with `Closes #123`.
-- Privacy is a feature: never make the app read `.env` files, keys or credentials, and never send data anywhere except the AI tool the user picked.
+- Privacy is a feature: exclude `.env` files and credentials from source imports; store explicit endpoint keys only in Keychain, and never send data anywhere except the AI tool the user picked.
 
 Releases are cut by the maintainer by pushing a `vX.Y.Z` tag (see `.github/workflows/release.yml`).
 

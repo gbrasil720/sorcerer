@@ -15,7 +15,7 @@
 <p align="center">
   <b>Create a community. Explore a hypothesis. Watch what happens.</b><br>
   A native, local-first macOS app that simulates communities of AI agents around a "what if…?" question,<br>
-  powered by the AI subscriptions you already have: Claude, ChatGPT (Codex) or Ollama.
+  powered by the AI subscriptions you already have: Claude, ChatGPT (Codex), Gemini or Ollama.
 </p>
 
 <p align="center">
@@ -52,16 +52,24 @@ back to the posts behind it.
 
 ## Bring your own AI
 
-Sorcerer doesn't ship a model or ask for a password. It drives the AI tools you're already signed in to:
+Sorcerer doesn't ship a model or ask for a password. Use a CLI session, a local server, or your own API endpoint:
 
 | Provider | How | Usage limits |
 | --- | --- | --- |
 | **Claude** | the `claude` CLI (Claude Code) | reads your 5-hour and weekly windows, pauses before you hit them |
 | **ChatGPT** | the `codex` CLI | pauses if ChatGPT says you're out |
-| **Ollama** | `localhost:11434` | local, free, never leaves your Mac |
+| **Ollama** | configurable server; defaults to `http://localhost:11434` | usage windows not reported; local servers run on your hardware |
+| **Gemini** | the `gemini` CLI | uses its configured login; test in Settings to verify; usage windows not reported |
+| **OpenAI-compatible** | LM Studio, OpenRouter, Groq, OpenAI or a custom base URL | the endpoint's own billing and limits apply |
 
-Pick a model per provider (Haiku / Sonnet / Opus, any model your ChatGPT plan lists, any local model),
+Pick a model per provider (Haiku / Sonnet / Opus, any model your ChatGPT plan lists, Gemini default / Auto / Pro / Flash, or a server model),
 and choose who plays which part: characters, reports and 1:1 chats can each use a different AI.
+
+In **Settings › Providers**, change the Ollama URL or leave it blank to use `OLLAMA_HOST` from the app's environment, then the localhost default. Use an explicit `http://` or `https://` URL. Finder-launched apps may not inherit Terminal environment variables; use the saved setting in that case.
+
+For **OpenAI-compatible**, pick a preset or enter the API base URL (including `/v1`, for example `http://localhost:1234/v1` for LM Studio). Use HTTPS for remote API endpoints; HTTP is supported for localhost, 127.0.0.1 and ::1. Enter a key if the server requires one and click **save key**, then **rescan** and choose a model. Servers without model listing can use a manually entered model ID and **enable endpoint with this model**. Click **test** to verify a short reply. Keys are stored per endpoint in macOS Keychain, never in `settings.json`; changing the URL requires a key for that endpoint. Remote services receive simulation context and may charge per call. Start LM Studio's local server and load a model before connecting.
+
+For **Gemini**, install [Gemini CLI](https://geminicli.com/docs/get-started/installation/), run `gemini` in Terminal to sign in, then rescan. Sorcerer reads only the non-secret login choice during detection; **test** verifies the session. Calls use headless JSON output in a temporary folder, with built-in tools, MCP, extensions, skills and hooks disabled. Gemini and compatible endpoints return completed replies; Claude and Ollama also show live text.
 
 ## A tour
 
@@ -239,7 +247,7 @@ curl -fsSL https://sorcererapp.dev/install.sh | sh
    (Apple silicon and Intel) for macOS 15 or later.
 2. Open the DMG and drag **Sorcerer** into **Applications**.
 
-Either way, install at least one AI tool and sign in: the `claude` CLI, the `codex` CLI, or [Ollama](https://ollama.com).
+Either way, configure a CLI session (Claude Code, Codex or Gemini), Ollama, LM Studio or an API endpoint in Settings › Providers.
 
 **First launch (DMG only).** Sorcerer is free and isn't signed with a paid Apple developer account, so macOS
 stops a browser download the first time with *"Apple could not verify Sorcerer…"*. To open it anyway:
@@ -262,7 +270,7 @@ the release checksum and asks before restarting into it. You can also use **Sorc
 
 ## Build it
 
-Requirements: macOS 15+, Xcode with Swift 6, and at least one of the `claude` CLI, the `codex` CLI or Ollama.
+Requirements: macOS 15+, Xcode with Swift 6, and a CLI session or server endpoint to run experiments.
 
 ```bash
 cd apps/macos
@@ -317,16 +325,14 @@ watch a small world of characters react, argue and change their minds round by r
 
 **Does it cost anything or need an API key?**
 No. Sorcerer is free and has no account or server. It uses the AI tools you're already signed in to:
-the `claude` CLI, the `codex` CLI (ChatGPT) or a local model in Ollama.
+Claude Code, Codex (ChatGPT), Gemini CLI, Ollama or an OpenAI-compatible endpoint. API keys are optional; remote API providers may charge for usage.
 
 **Which AI models does it support?**
 Claude (Haiku, Sonnet, Opus) through Claude Code, any model your ChatGPT plan offers through Codex, and any
-local Ollama model. You can pick a different one for characters, reports and chats.
+Ollama model, Gemini CLI model, or a model served by LM Studio or an OpenAI-compatible endpoint. You can pick a different one for characters, reports and chats.
 
 **Is my data private?**
-Everything is stored as plain JSON in `~/Sorcerer` on your Mac. When a round runs on Claude or ChatGPT, only
-what that round needs is sent to that provider; with Ollama nothing leaves your Mac. `.env` files, keys and
-credentials are never read.
+Everything is stored as plain JSON in `~/Sorcerer` on your Mac. Only the context needed for a call is sent to the provider you select. Local Ollama and LM Studio servers keep inference on your Mac; remote hosts receive that context. Source imports exclude `.env` files and credentials. Endpoint API keys are stored in Keychain.
 
 **How is it different from MiroFish?**
 Sorcerer is inspired by [MiroFish](https://github.com/666ghj/MiroFish) but is a separate implementation: a

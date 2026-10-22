@@ -211,7 +211,7 @@ final class Store {
         do {
             let stream: (@Sendable (String) -> Void)? = onText.map { f in { text in Task { @MainActor in f(text) } } }
             let r = try await AI.complete(prompt, with: provider, ollamaModel: settings.ollamaModel,
-                                          model: settings.model(for: provider), onText: stream)
+                                          model: settings.model(for: provider), settings: settings, onText: stream)
             if let u = r.usage { usage[provider] = u }
             return r.text
         } catch let e as AIError {
@@ -307,7 +307,7 @@ final class Store {
         replay = nil
         guard let e = experiment, let b = branch else { return }
         let branchID = b.id
-        live = LiveRound(branch: branchID, round: b.round + 1, streams: settings.characters != .codex)
+        live = LiveRound(branch: branchID, round: b.round + 1, streams: settings.characters.streams)
         defer { live = nil }
         do {
             let reply = try await ask(Engine.roundPrompt(e, b), settings.characters, "playing round \(b.round + 1)…") { [weak self] text in
@@ -406,7 +406,7 @@ final class Store {
         replay = nil
         let branchID = b.id
         livePoll = LivePoll(branch: branchID, question: q, options: options, people: b.characters.count - Engine.away(b).count,
-                            streams: settings.characters != .codex)
+                            streams: settings.characters.streams)
         defer { livePoll = nil }
         do {
             let reply = try await ask(Engine.pollPrompt(e, b, question: q, options: options), settings.characters, "asking everyone…") { [weak self] text in

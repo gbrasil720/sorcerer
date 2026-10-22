@@ -12,14 +12,14 @@ open an issue first so we can agree on the shape (see [CONTRIBUTING.md](CONTRIBU
 - [x] **Web viewer:** open a shared `.sorcerer.json` on [sorcererapp.dev/view](https://sorcererapp.dev/view) and
   read the feed, polls, people and report without installing the app.
 
+- [x] **More providers:** configurable Ollama host, Gemini CLI, LM Studio, and an API key or custom OpenAI-compatible endpoint.
+
 ## Next
 
-- [ ] **More providers:** Gemini CLI, LM Studio, and an API key or custom OpenAI-compatible endpoint.
+- [ ] **DMs and group chats:** characters talk in private channels, so gossip spreads differently from what's said in public.
 
 ## Richer simulations
 
-- [ ] **DMs and group chats:** characters talk in private channels, so gossip spreads differently from what's
-  said in public.
 - [ ] **Scheduled events:** plan ahead ("news breaks in round 3, the price changes in round 5").
 - [ ] **Who hears first:** start the news with an influencer or a skeptic and see whether it spreads differently.
 - [ ] **You as a character:** post inside the world and see how people react.

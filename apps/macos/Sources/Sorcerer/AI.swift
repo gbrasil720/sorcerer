@@ -17,8 +17,7 @@ struct Reply {
     var usage: Usage?
 }
 
-/// Talks to the AI tools the user is already signed in to. Sorcerer never sees
-/// a token: it runs the official CLIs (or a local Ollama) and reads the reply.
+/// Uses official CLI sessions or a configured HTTP endpoint.
 enum AI {
     /// The PATH your Terminal has. A login shell alone misses what ~/.zshrc adds (~/.local/bin, where
     /// the claude installer puts it; nvm, bun…), so ask an interactive shell once and remember it.
@@ -49,14 +48,14 @@ enum AI {
     }()
 
     /// Runs through a login shell with your Terminal's PATH, so a Finder-launched app finds the same CLIs.
-    static func shell(_ command: String, stdin: String? = nil,
+    static func shell(_ command: String, stdin: String? = nil, directory: URL = FileManager.default.temporaryDirectory,
                       onLine: (@Sendable (String) -> Void)? = nil) async throws -> (out: String, err: String, code: Int32) {
         try await withCheckedThrowingContinuation { cont in
             DispatchQueue.global().async {
                 let p = Process()
                 p.executableURL = URL(fileURLWithPath: "/bin/zsh")
                 p.arguments = ["-lc", "export PATH=\(Sources.quoted(userPath)); \(command)"]
-                p.currentDirectoryURL = FileManager.default.temporaryDirectory
+                p.currentDirectoryURL = directory
                 let out = Pipe(), err = Pipe(), inp = Pipe()
                 p.standardOutput = out
                 p.standardError = err
@@ -114,8 +113,8 @@ enum AI {
     }
 
     /// Models the user can pick for a provider. "" = the tool's own default.
-    static func models(for p: Provider) async -> [ModelOption] {
-        let auto = ModelOption(id: "", name: "default", detail: "whatever \(p == .claude ? "Claude Code" : p == .codex ? "Codex" : "Ollama") uses")
+    static func models(for p: Provider, settings: Settings = Settings()) async -> [ModelOption] {
+        let auto = ModelOption(id: "", name: "default", detail: "whatever \(p.label) uses")
         switch p {
         case .claude:
             return [auto,
@@ -131,24 +130,43 @@ enum AI {
             let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex/models_cache.json")
             let listed = (try? JSONDecoder().decode(Cache.self, from: Data(contentsOf: url)))?.models.filter { $0.visibility != "hide" } ?? []
             return [auto] + listed.map { ModelOption(id: $0.slug, name: $0.display_name ?? $0.slug, detail: $0.description ?? "") }
+        case .gemini:
+            return [auto, ModelOption(id: "auto", name: "Auto", detail: "Gemini CLI automatic selection"),
+                    ModelOption(id: "pro", name: "Pro", detail: "Gemini CLI Pro alias"),
+                    ModelOption(id: "flash", name: "Flash", detail: "Gemini CLI Flash alias")]
+        case .compatible:
+            return (try? await compatibleModels(settings: settings)) ?? []
         case .ollama:
-            return (await ollamaModels() ?? []).map { ModelOption(id: $0, name: $0, detail: "local") }
+            return (await ollamaModels(host: settings.ollamaHost) ?? []).map { ModelOption(id: $0, name: $0, detail: "Ollama server") }
         }
     }
 
-    /// Asks the CLI itself whether it has a login; never reads its credentials.
-    static func signedIn(_ p: Provider) async -> Bool {
+    /// Detects CLI login or server availability; Gemini checks its non-secret login choice.
+    static func signedIn(_ p: Provider, settings: Settings = Settings()) async -> Bool {
         switch p {
-        case .claude: (try? await shell("claude auth status"))?.out.contains(#""loggedIn": true"#) == true
+        case .claude: return (try? await shell("claude auth status"))?.out.contains(#""loggedIn": true"#) == true
         case .codex:
             // codex prints its status on stderr.
-            if let r = try? await shell("codex login status") { r.code == 0 && (r.out + r.err).localizedCaseInsensitiveContains("logged in") } else { false }
-        case .ollama: await ollamaModels() != nil
+            if let r = try? await shell("codex login status") { return r.code == 0 && (r.out + r.err).localizedCaseInsensitiveContains("logged in") } else { return false }
+        case .ollama: return await ollamaModels(host: settings.ollamaHost) != nil
+        case .compatible: return (try? await compatibleModels(settings: settings)) != nil
+        case .gemini:
+            // Only read the non-secret login choice; the test button verifies the session.
+            let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".gemini/settings.json")
+            let obj = (try? Data(contentsOf: url)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            let auth = (obj?["security"] as? [String: Any])?["auth"] as? [String: Any]
+            return auth?["selectedType"] as? String != nil
+                || ProcessInfo.processInfo.environment["GEMINI_API_KEY"]?.isEmpty == false
+                || ProcessInfo.processInfo.environment["GOOGLE_API_KEY"]?.isEmpty == false
         }
     }
 
-    static func ollamaModels() async -> [String]? {
-        guard let (data, _) = try? await URLSession.shared.data(from: URL(string: "http://localhost:11434/api/tags")!)
+    static func ollamaModels(host: String? = nil, session: URLSession = .shared) async -> [String]? {
+        guard let url = try? endpoint(ollamaBase(host), path: "api/tags") else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+        guard let (data, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode)
         else { return nil }
         struct Tags: Decodable {
             struct Model: Decodable { let name: String }
@@ -159,7 +177,7 @@ enum AI {
 
     /// `model` empty = whatever the tool itself defaults to.
     /// `onText` receives the answer so far, as it's written (Claude and Ollama stream; ChatGPT doesn't).
-    static func complete(_ prompt: String, with provider: Provider, ollamaModel: String, model: String = "",
+    static func complete(_ prompt: String, with provider: Provider, ollamaModel: String, model: String = "", settings: Settings = Settings(),
                          onText: (@Sendable (String) -> Void)? = nil) async throws -> Reply {
         let pick = model.isEmpty ? "" : " \(provider == .codex ? "-m" : "--model") \(Sources.quoted(model))"
         switch provider {
@@ -187,8 +205,19 @@ enum AI {
                 throw AIError(message: missing(r, "codex") ?? "ChatGPT: " + tail(r.err))
             }
             return Reply(text: text)
+        case .gemini:
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("sorcerer-gemini-" + UUID().uuidString)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: directory) }
+            let config = directory.appendingPathComponent("settings.json")
+            try JSONSerialization.data(withJSONObject: geminiSettings).write(to: config)
+            let r = try await shell(geminiCommand(model: model, config: config), stdin: prompt, directory: directory)
+            if let m = missing(r, "gemini") { throw AIError(message: m) }
+            return try parseGemini(r.out, err: r.err, code: r.code)
+        case .compatible:
+            return try await compatibleComplete(prompt, model: model, settings: settings)
         case .ollama:
-            var req = URLRequest(url: URL(string: "http://localhost:11434/api/generate")!)
+            var req = URLRequest(url: try endpoint(ollamaBase(settings.ollamaHost), path: "api/generate"))
             req.httpMethod = "POST"
             req.timeoutInterval = 600
             req.httpBody = try JSONSerialization.data(withJSONObject: [
@@ -196,7 +225,8 @@ enum AI {
             ])
             // One JSON object per line: {"response":"…","done":false}
             struct Chunk: Decodable { let response: String?; let error: String? }
-            let (bytes, _) = try await URLSession.shared.bytes(for: req)
+            let (bytes, response) = try await URLSession.shared.bytes(for: req)
+            try checkHTTP(response)
             var text = ""
             for try await line in bytes.lines {
                 guard let c = try? JSONDecoder().decode(Chunk.self, from: Data(line.utf8)) else { continue }
@@ -204,6 +234,7 @@ enum AI {
                 text += c.response ?? ""
                 onText?(text)
             }
+            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIError(message: "Ollama returned no text. Check the model in Settings › Providers.") }
             return Reply(text: text)
         }
     }

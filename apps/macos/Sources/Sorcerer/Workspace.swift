@@ -545,7 +545,7 @@ struct UsageBlock: View {
         let p = store.settings.characters
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Caps(p == .ollama ? "your local model" : "your subscription")
+                Caps(p == .ollama ? "your server model" : p == .compatible ? "your endpoint" : "your CLI session")
                 Spacer()
                 Text("limits ›").font(.mono(10)).foregroundStyle(Color.muted)
             }
@@ -555,7 +555,7 @@ struct UsageBlock: View {
                 row(u.fiveHour, "5h window")
                 if let week = u.sevenDay { row(week, "7 days") }
             } else {
-                Text(p == .ollama ? "local · no limit" : p == .codex ? "ChatGPT doesn't report usage" : "usage shows after the first call")
+                Text(p.usageDetail)
                     .font(.mono(10)).foregroundStyle(Color.muted)
             }
             if let until = store.pausedUntil {
@@ -700,7 +700,7 @@ struct LivePollCard: View {
                         }
                     }
                     Text(done.isEmpty && poll.partial.typing == nil
-                         ? (poll.streams ? "everyone is thinking it over…" : "everyone is thinking it over · ChatGPT sends all answers at once")
+                         ? (poll.streams ? "everyone is thinking it over…" : "everyone is thinking it over · this provider sends all answers at once")
                          : "\(waiting.count) still thinking…")
                         .font(.mono(11)).foregroundStyle(Color.muted)
                 }
@@ -792,7 +792,7 @@ struct LiveRoundView: View {
                      ? (live.partial.done.isEmpty
                         ? (lastAuthors.isEmpty ? "\(branch.characters.count) people deciding what to say" : "reacting to \(lastAuthors.sorted().map { "@\($0)" }.joined(separator: ", "))")
                         : "\(live.partial.done.count) posted so far")
-                     : "ChatGPT answers all at once · the whole round lands together")
+                     : "this provider answers all at once · the whole round lands together")
                     .font(.mono(10)).foregroundStyle(Color.muted)
             }
             Spacer(minLength: 0)

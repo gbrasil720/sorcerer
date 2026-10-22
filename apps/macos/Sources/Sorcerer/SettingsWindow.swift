@@ -96,16 +96,21 @@ private struct ProvidersPane: View {
     @State private var status: [Provider: Status] = [:]
     @State private var models: [Provider: [AI.ModelOption]] = [:]
     @State private var tests: [Provider: Test] = [:]
+    @State private var endpointKey = ""
+    @State private var endpointDraft = "http://localhost:1234/v1"
+    @State private var keyMessage = ""
+    @State private var connectionError = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
-                PaneHeader(title: "Providers", detail: "The AI tools Sorcerer drives. It uses the sign-in each one already has and never sees a password.")
+                PaneHeader(title: "Providers", detail: "Use a CLI session, an Ollama server or an OpenAI-compatible endpoint. API keys stay in Keychain.")
                 Spacer()
                 Button("rescan") { Task { await scan() } }.buttonStyle(SButton())
             }
             ForEach(Provider.allCases) { p in card(p) }
         }
+        .onAppear { endpointDraft = store.settings.compatibleURL ?? "http://localhost:1234/v1" }
         .task { await scan() }
     }
 
@@ -116,7 +121,7 @@ private struct ProvidersPane: View {
         let on = enabled.contains(p)
         return VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
-                Text(["claude": "Cl", "codex": "GP", "ollama": "Ol"][p.rawValue]!).font(.mono(12)).foregroundStyle(Color.ember)
+                Text(["claude": "Cl", "codex": "GP", "ollama": "Ol", "gemini": "Ge", "compatible": "API"][p.rawValue] ?? "AI").font(.mono(12)).foregroundStyle(Color.ember)
                     .frame(width: 34, height: 34).overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.line))
                 VStack(alignment: .leading, spacing: 3) {
                     Text(p.label).font(.display(15))
@@ -125,9 +130,17 @@ private struct ProvidersPane: View {
                 Spacer()
                 Toggle("use", isOn: Binding(get: { on }, set: { toggle(p, $0) }))
                     .toggleStyle(.switch).controlSize(.small).labelsHidden()
-                    .disabled(s != .ready)
+                    .disabled(s != .ready && !on)
             }
-            if s == .ready {
+            if p == .ollama {
+                TextField("Ollama URL (default: OLLAMA_HOST or http://localhost:11434)", text: Binding(
+                    get: { store.settings.ollamaHost ?? "" }, set: { store.settings.ollamaHost = $0.isEmpty ? nil : $0; status[p] = .missing }))
+                    .textFieldStyle(.roundedBorder)
+                Text("Rescan after changing the address. A remote server receives the simulation context.").font(.mono(10)).foregroundStyle(Color.muted)
+            }
+            if p == .ollama && !connectionError.isEmpty { Text(connectionError).font(.mono(11)).foregroundStyle(Color.ember) }
+            if p == .compatible { endpointFields }
+            if s == .ready || p == .compatible || p == .ollama {
                 HStack(spacing: 10) {
                     Text("model").font(.mono(11)).foregroundStyle(Color.muted).frame(width: 60, alignment: .leading)
                     modelMenu(p)
@@ -137,16 +150,67 @@ private struct ProvidersPane: View {
                         .disabled(tests[p] == .running)
                 }
             } else if s == .signedOut {
-                Text("Installed but not signed in. Run `\(p == .claude ? "claude" : "codex login")` in Terminal, then rescan.")
+                Text("Installed but not signed in. Run `\(p.loginCommand)` in Terminal, then rescan.")
                     .font(.mono(11)).foregroundStyle(Color.muted)
             } else if s == .missing {
                 Text(p == .ollama ? "Not running. Install it from ollama.com, pull a model, then rescan."
-                                  : "Not installed. Install the \(p == .claude ? "Claude Code" : "Codex") CLI and sign in, then rescan.")
+                                  : "Not installed. Install the \(p.binary) CLI and sign in, then rescan.")
                     .font(.mono(11)).foregroundStyle(Color.muted)
             }
         }
         .card(on ? .ember.opacity(0.7) : .line, padding: 16)
-        .opacity(s == .ready || s == .checking ? 1 : 0.7)
+        .opacity(s == .ready || s == .checking || p == .ollama || p == .compatible ? 1 : 0.7)
+    }
+
+    private var endpointFields: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Menu("preset") {
+                Button("LM Studio") { changeEndpoint("http://localhost:1234/v1") }
+                Button("OpenRouter") { changeEndpoint("https://openrouter.ai/api/v1") }
+                Button("Groq") { changeEndpoint("https://api.groq.com/openai/v1") }
+                Button("OpenAI") { changeEndpoint("https://api.openai.com/v1") }
+            }.fixedSize()
+            TextField("Base URL including /v1", text: $endpointDraft, onEditingChanged: { editing in
+                if !editing { changeEndpoint(endpointDraft) }
+            })
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { changeEndpoint(endpointDraft) }
+            HStack {
+                SecureField("API key (optional for local servers)", text: $endpointKey).textFieldStyle(.roundedBorder)
+                Button("save key") { saveKey() }.buttonStyle(SButton()).disabled(endpointKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("remove key") { endpointKey = ""; saveKey() }.buttonStyle(SButton())
+            }
+            Text("Keys are saved per endpoint in Keychain. Enter a new key after changing hosts. Remote endpoints receive your simulation context and may charge per request.")
+                .font(.mono(10)).foregroundStyle(Color.muted)
+            TextField("Model ID (or select one below after rescan)", text: Binding(get: { store.settings.model(for: .compatible) }, set: { setModel(.compatible, $0) }))
+                .textFieldStyle(.roundedBorder)
+            if !keyMessage.isEmpty { Text(keyMessage).font(.mono(11)).foregroundStyle(Color.ember) }
+            Button("enable endpoint with this model") { toggle(.compatible, true) }.buttonStyle(SButton())
+                .disabled(store.settings.model(for: .compatible).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
+    private func changeEndpoint(_ url: String) {
+        let url = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        endpointDraft = url
+        guard url != (store.settings.compatibleURL ?? "http://localhost:1234/v1") else { return }
+        store.settings.compatibleURL = url
+        endpointKey = ""
+        keyMessage = ""
+        models[.compatible] = []
+        tests[.compatible] = nil
+        status[.compatible] = .missing
+        setModel(.compatible, "")
+        toggle(.compatible, false)
+    }
+
+    private func saveKey() {
+        do {
+            try EndpointKey.save(endpointKey, base: store.settings.compatibleURL)
+            endpointKey = ""
+            keyMessage = "Keychain updated. Rescan to connect."
+            tests[.compatible] = nil
+        } catch { keyMessage = error.localizedDescription }
     }
 
     private func modelMenu(_ p: Provider) -> some View {
@@ -180,7 +244,7 @@ private struct ProvidersPane: View {
         case .checking: "checking…"
         case .missing: p == .ollama ? "not running" : "not found"
         case .signedOut: "installed, not signed in"
-        case .ready: p == .ollama ? "● running" : "signed in"
+        case .ready: p == .ollama ? "● running" : p == .compatible ? "connected" : p == .gemini ? "login configured · test to verify" : "signed in"
         }
     }
 
@@ -189,12 +253,18 @@ private struct ProvidersPane: View {
         for p in Provider.allCases {
             let s: Status
             switch p {
-            case .ollama: s = await AI.ollamaModels() == nil ? .missing : .ready
+            case .ollama:
+                do { _ = try AI.endpoint(AI.ollamaBase(store.settings.ollamaHost), path: "api/tags"); connectionError = "" }
+                catch { connectionError = error.localizedDescription }
+                s = await AI.ollamaModels(host: store.settings.ollamaHost) == nil ? .missing : .ready
+            case .compatible:
+                do { models[p] = try await AI.compatibleModels(settings: store.settings); s = .ready; keyMessage = "" }
+                catch { s = .missing; keyMessage = error.localizedDescription }
             default:
-                s = await AI.installed(p == .claude ? "claude" : "codex") ? (await AI.signedIn(p) ? .ready : .signedOut) : .missing
+                s = await AI.installed(p.binary) ? (await AI.signedIn(p) ? .ready : .signedOut) : .missing
             }
             status[p] = s
-            if s == .ready { models[p] = await AI.models(for: p) }
+            if s == .ready { models[p] = await AI.models(for: p, settings: store.settings) }
         }
     }
 
@@ -223,7 +293,7 @@ private struct ProvidersPane: View {
         let start = Date()
         do {
             let r = try await AI.complete("Reply with only the word: ok", with: p, ollamaModel: store.settings.ollamaModel,
-                                          model: store.settings.model(for: p))
+                                          model: store.settings.model(for: p), settings: store.settings)
             if let u = r.usage { store.usage[p] = u }
             let model = store.settings.model(for: p)
             tests[p] = .ok("answered in \(String(format: "%.1f", Date().timeIntervalSince(start)))s\(model.isEmpty ? "" : " · \(model)")")
@@ -326,7 +396,7 @@ private struct LimitsPane: View {
                             Spacer()
                             Text("resets \(u.resetsAt.formatted(date: .omitted, time: .shortened))").font(.mono(10)).foregroundStyle(Color.muted)
                         } else {
-                            Text(p == .ollama ? "local · no limit" : p == .codex ? "ChatGPT doesn't report usage" : "measured on the next call")
+                            Text(p.usageDetail)
                                 .font(.mono(11)).foregroundStyle(Color.muted)
                         }
                     }
