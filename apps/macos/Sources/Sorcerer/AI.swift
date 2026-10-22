@@ -161,9 +161,11 @@ enum AI {
         }
     }
 
-    static func ollamaModels(host: String? = nil) async -> [String]? {
-        guard let url = try? endpoint(ollamaBase(host), path: "api/tags"),
-              let (data, response) = try? await URLSession.shared.data(from: url),
+    static func ollamaModels(host: String? = nil, session: URLSession = .shared) async -> [String]? {
+        guard let url = try? endpoint(ollamaBase(host), path: "api/tags") else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+        guard let (data, response) = try? await session.data(for: request),
               let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode)
         else { return nil }
         struct Tags: Decodable {

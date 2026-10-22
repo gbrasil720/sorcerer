@@ -35,7 +35,11 @@ extension AI {
     static let endpointSession = URLSession(configuration: .ephemeral, delegate: NoRedirect(), delegateQueue: nil)
 
     static func compatibleRequest(settings: Settings, path: String, key: String?) throws -> URLRequest {
-        var req = URLRequest(url: try endpoint(settings.compatibleURL ?? "http://localhost:1234/v1", path: path))
+        let url = try endpoint(settings.compatibleURL ?? "http://localhost:1234/v1", path: path)
+        if url.scheme?.lowercased() == "http", !["localhost", "127.0.0.1", "::1", "[::1]"].contains(url.host?.lowercased() ?? "") {
+            throw AIError(message: "Remote API endpoints require an https:// URL. HTTP is supported only for loopback servers on this Mac.")
+        }
+        var req = URLRequest(url: url)
         req.timeoutInterval = path == "models" ? 15 : 600
         if let key, !key.isEmpty { req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization") }
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -126,6 +130,7 @@ enum EndpointKey {
         return String(data: data, encoding: .utf8)
     }
     static func save(_ value: String, base: String?) throws {
+        let value = value.trimmingCharacters(in: .whitespacesAndNewlines)
         let q = try query(base)
         if value.isEmpty {
             let status = SecItemDelete(q as CFDictionary)

@@ -49,6 +49,27 @@ final class ProviderTests: XCTestCase {
         }
     }
 
+    func testCompatibleTransportRequiresHTTPSOutsideLoopback() throws {
+        var settings = Settings()
+        for base in ["http://localhost:1234/v1", "http://127.0.0.1:1234/v1", "http://[::1]:1234/v1", "https://api.example/v1"] {
+            settings.compatibleURL = base
+            XCTAssertNoThrow(try AI.compatibleRequest(settings: settings, path: "models", key: "fixture"))
+        }
+        for base in ["http://api.example/v1", "http://localhost.example/v1", "http://192.168.1.20:1234/v1"] {
+            settings.compatibleURL = base
+            XCTAssertThrowsError(try AI.compatibleRequest(settings: settings, path: "models", key: "fixture"))
+        }
+    }
+
+    func testOllamaDiscoveryUsesShortTimeout() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [EndpointProtocol.self]
+        let session = URLSession(configuration: config)
+        defer { session.invalidateAndCancel() }
+        let models = await AI.ollamaModels(host: "http://offline.example:11434", session: session)
+        XCTAssertEqual(models, ["fixture-model"])
+    }
+
     func testKeysAreBoundToEndpoint() throws {
         XCTAssertNotEqual(try EndpointKey.account("https://one.example/v1"), try EndpointKey.account("https://two.example/v1"))
         XCTAssertEqual(try EndpointKey.account("https://one.example/v1/"), try EndpointKey.account("https://one.example/v1"))
@@ -74,7 +95,7 @@ final class ProviderTests: XCTestCase {
         let base = "https://" + UUID().uuidString.lowercased() + ".example/v1"
         var settings = Settings()
         settings.compatibleURL = base
-        try EndpointKey.save("test-fixture", base: base)
+        try EndpointKey.save("  test-fixture \n", base: base)
         defer { try? EndpointKey.save("", base: base) }
         XCTAssertEqual(try EndpointKey.read(base: base), "test-fixture")
         let config = URLSessionConfiguration.ephemeral
@@ -109,12 +130,17 @@ private final class EndpointProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
-        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-fixture")
         let body: String
-        if request.url!.path.hasSuffix("/models") {
+        if request.url!.path.hasSuffix("/api/tags") {
+            XCTAssertEqual(request.timeoutInterval, 5)
+            XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+            body = #"{"models":[{"name":"fixture-model"}]}"#
+        } else if request.url!.path.hasSuffix("/models") {
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-fixture")
             XCTAssertEqual(request.httpMethod, "GET")
             body = #"{"data":[{"id":"fixture-model"}]}"#
         } else {
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-fixture")
             XCTAssertTrue(request.url!.path.hasSuffix("/chat/completions"))
             XCTAssertEqual(request.httpMethod, "POST")
             // URLSession may promote the body to an input stream.
