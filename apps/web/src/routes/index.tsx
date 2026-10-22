@@ -16,7 +16,7 @@ const CHANGELOG_URL = `${GITHUB_URL}/releases`;
 const ISSUES_URL = `${GITHUB_URL}/issues/new/choose`;
 // Downloading with curl skips the quarantine flag that makes macOS block unsigned apps.
 const INSTALL_CMD = "curl -fsSL https://sorcererapp.dev/install.sh | sh";
-const VERSION = "v0.5";
+const VERSION = "v0.6";
 const LICENSE = "MIT";
 
 /** Live star count from GitHub; null until it loads (or if the API is unreachable). */
@@ -1436,9 +1436,9 @@ const PROVIDERS = [
   ["OL", "Ollama · qwen2.5:14b", "local · this Mac", "ready"],
   ["CL", "Claude", "via Claude Code · your subscription", "signed in"],
   ["GP", "ChatGPT", "via Codex CLI · your subscription", "signed in"],
-  ["Ge", "Gemini", "via Gemini CLI", "soon"],
-  ["LM", "LM Studio", "localhost:1234", "soon"],
-  ["{}", "Any API key", "OpenAI-compatible endpoints", "soon"],
+  ["Ge", "Gemini", "via Gemini CLI", "ready"],
+  ["LM", "LM Studio", "OpenAI-compatible · localhost:1234/v1", "ready"],
+  ["{}", "Your API endpoint", "OpenAI-compatible · key in Keychain", "ready"],
 ];
 
 function YourAI() {
@@ -1450,12 +1450,13 @@ function YourAI() {
     >
       <div>
         <Eyebrow>bring your own AI</Eyebrow>
-        <H2 small>The AI you already use. No new bill.</H2>
+        <H2 small>The AI you already use. Your choice.</H2>
         <p className="mt-6 max-w-[520px] text-lg text-paper/75 leading-relaxed">
           Sorcerer finds the AI tools you're signed in to and uses each
-          provider's own integration. Prefer local models? Ollama works too. Mix
-          them per role: characters, reports and chats can each run on a
-          different one.
+          provider's own integration. Prefer local models? Use Ollama or LM
+          Studio. You can also connect an OpenAI-compatible endpoint with your
+          own key; API usage may be billed by that provider. Mix them per role:
+          characters, reports and chats can each run on a different one.
         </p>
       </div>
       <Card className="p-2">
@@ -1607,15 +1608,15 @@ function Band() {
 const FAQ = [
   [
     "Is Sorcerer free?",
-    "Yes. It's free and open source (MIT), with no account and no server. It runs on the AI tools you're already signed in to.",
+    "Yes. It's free and open source (MIT), with no account and no server. It runs on the AI tools you're already signed in to, local models or your own endpoint. Remote API providers may charge for usage.",
   ],
   [
     "Where does my data live?",
-    "In ~/Sorcerer on your Mac, as plain JSON you can read, back up or delete. When a round runs on Claude or ChatGPT, only what that round needs is sent to that provider; with Ollama nothing leaves your Mac.",
+    "In ~/Sorcerer on your Mac, as plain JSON you can read, back up or delete. When a round runs on Claude or ChatGPT, only what that round needs is sent to that provider; local Ollama and LM Studio servers keep inference on your Mac. Remote servers receive that context; API keys stay in Keychain.",
   ],
   [
     "Which AI can I use?",
-    "Claude through Claude Code, ChatGPT through the Codex CLI, or any local model in Ollama. Pick a model per provider and a different one for characters, reports and chats. Gemini, LM Studio and API keys are next.",
+    "Claude through Claude Code, ChatGPT through Codex CLI, Gemini CLI, Ollama, LM Studio or an OpenAI-compatible API endpoint. Pick a model per provider and a different one for characters, reports and chats.",
   ],
   [
     "What happens when I hit my limits?",

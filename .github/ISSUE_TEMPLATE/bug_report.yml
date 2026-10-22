@@ -47,6 +47,8 @@ body:
         - Claude (claude CLI)
         - ChatGPT (codex CLI)
         - Ollama
+        - Gemini CLI
+        - OpenAI-compatible endpoint (including LM Studio)
         - Not related to a provider
   - type: textarea
     id: logs
