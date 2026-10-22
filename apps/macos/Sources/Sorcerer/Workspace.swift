@@ -545,7 +545,7 @@ struct UsageBlock: View {
         let p = store.settings.characters
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Caps(p == .ollama ? "your local model" : "your subscription")
+                Caps(p == .ollama ? "your server model" : p == .compatible ? "your endpoint" : "your CLI session")
                 Spacer()
                 Text("limits ›").font(.mono(10)).foregroundStyle(Color.muted)
             }
@@ -555,7 +555,7 @@ struct UsageBlock: View {
                 row(u.fiveHour, "5h window")
                 if let week = u.sevenDay { row(week, "7 days") }
             } else {
-                Text(p == .ollama ? "local · no limit" : p == .codex ? "ChatGPT doesn't report usage" : "usage shows after the first call")
+                Text(p.usageDetail)
                     .font(.mono(10)).foregroundStyle(Color.muted)
             }
             if let until = store.pausedUntil {

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct Onboarding: View {
     @Environment(Store.self) private var store
+    @Environment(\.openSettings) private var openSettings
     @State private var step = 0
     enum Found { case missing, signedOut, ready }
     @State private var scan: [Provider: Found] = [:]
@@ -136,9 +137,10 @@ struct Onboarding: View {
             
             HStack(alignment: .top, spacing: 20) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Caps("subscriptions on this Mac")
+                    Caps("CLI sessions on this Mac")
                     providerRow(.claude, "Cl")
                     providerRow(.codex, "GP")
+                    providerRow(.gemini, "Ge")
                 }
                 VStack(alignment: .leading, spacing: 10) {
                     Caps("local models")
@@ -150,6 +152,10 @@ struct Onboarding: View {
                         }
                     }
                 }
+            }
+            HStack {
+                Text(enabled.contains(.compatible) ? "Your API endpoint is enabled." : "Use LM Studio or an API key?").font(.mono(11)).foregroundStyle(Color.muted)
+                Button("configure endpoint…") { store.settingsPane = .providers; openSettings() }.buttonStyle(SButton())
             }
             flow.padding(.top, 8)
             Text("◆  Sorcerer uses the sign-in each tool already has and never asks for your password. Nothing is sent to a provider until you run a simulation.")
@@ -174,7 +180,7 @@ struct Onboarding: View {
             }
             Spacer()
             if installed && !found && p != .ollama {
-                Text(p == .claude ? "run: claude" : "run: codex login").font(.mono(11)).foregroundStyle(Color.muted)
+                Text("run: " + p.loginCommand).font(.mono(11)).foregroundStyle(Color.muted)
             } else {
                 Button(on ? "[■ use]" : "[  use]") { toggle(p) }
                     .buttonStyle(SButton()).disabled(!found)
@@ -188,8 +194,10 @@ struct Onboarding: View {
     private func detail(_ p: Provider, _ found: Bool) -> String {
         switch p {
         case .claude: "Reports its 5-hour and weekly usage, so runs pause before you hit the limit."
+        case .gemini: "Uses your Gemini CLI login. Test it in Settings to verify the session; usage windows are not reported."
+        case .compatible: "Configure your endpoint and key in Settings › Providers."
         case .codex: "Doesn't report usage; runs pause only if ChatGPT says you're out."
-        case .ollama: found ? "Free and private: rounds never leave this Mac. \(ollama.count) \(ollama.count == 1 ? "model" : "models") found."
+        case .ollama: found ? "Uses your configured Ollama server. \(ollama.count) \(ollama.count == 1 ? "model" : "models") found."
                             : "Free and private. Install it from ollama.com and pull a model to run worlds offline."
         }
     }
@@ -254,7 +262,7 @@ struct Onboarding: View {
                                 Meter(value: u.fiveHour, cells: 16)
                                 Text("\(Int(u.fiveHour * 100))% · 5h window").font(.mono(11))
                             } else {
-                                Text(p == .ollama ? "local · no limit" : p == .codex ? "not reported" : "measured on the first round")
+                                Text(p.usageDetail)
                                     .font(.mono(11)).foregroundStyle(Color.muted)
                             }
                         }
@@ -311,8 +319,7 @@ struct Onboarding: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("You're ready. What should we explore first?").font(.display(30))
-                    let subs = enabled.filter { $0 != .ollama }.count, local = enabled.contains(.ollama) ? 1 : 0
-                    Text("\(subs) \(subs == 1 ? "subscription" : "subscriptions")\(local > 0 ? " · 1 local model" : "") · pause at \(store.settings.pauseAt.map { $0 == 0 ? "never" : "\($0)%" } ?? "90%") · ~/Sorcerer")
+                    Text("\(enabled.count) AI sources · pause at \(store.settings.pauseAt.map { $0 == 0 ? "never" : "\($0)%" } ?? "90%") · ~/Sorcerer")
                         .font(.mono(11)).foregroundStyle(Color.muted)
                 }
                 Spacer()
@@ -387,9 +394,10 @@ struct Onboarding: View {
     private func runScan() async {
         async let claude = status(.claude, "claude")
         async let codex = status(.codex, "codex")
-        async let models = AI.ollamaModels()
-        let (c, x, m) = await (claude, codex, models)
-        scan = [.claude: c, .codex: x, .ollama: m?.isEmpty == false ? .ready : .missing]
+        async let gemini = status(.gemini, "gemini")
+        async let models = AI.ollamaModels(host: store.settings.ollamaHost)
+        let (c, x, g, m) = await (claude, codex, gemini, models)
+        scan = [.claude: c, .codex: x, .gemini: g, .ollama: m?.isEmpty == false ? .ready : .missing]
         ollama = m ?? []
         if store.settings.ollamaModel.isEmpty { store.settings.ollamaModel = ollama.first ?? "" }
         if store.settings.enabled == nil {

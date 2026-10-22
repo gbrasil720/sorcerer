@@ -317,7 +317,7 @@ struct NewExperiment: View {
                             Text("\(Int(u.fiveHour * 100))% of the 5h window used").font(.mono(10)).foregroundStyle(Color.muted)
                         }
                     } else {
-                        Text(p == .ollama ? "local model · no limit" : "usage shows after the first call")
+                        Text(p.usageDetail)
                             .font(.mono(10)).foregroundStyle(Color.muted)
                     }
                     Text("Runs pause at \(store.pauseThreshold.map { "\(Int($0 * 100))%" } ?? "never") and resume when the window resets.")
