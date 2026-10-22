@@ -700,7 +700,7 @@ struct LivePollCard: View {
                         }
                     }
                     Text(done.isEmpty && poll.partial.typing == nil
-                         ? (poll.streams ? "everyone is thinking it over…" : "everyone is thinking it over · ChatGPT sends all answers at once")
+                         ? (poll.streams ? "everyone is thinking it over…" : "everyone is thinking it over · this provider sends all answers at once")
                          : "\(waiting.count) still thinking…")
                         .font(.mono(11)).foregroundStyle(Color.muted)
                 }
@@ -792,7 +792,7 @@ struct LiveRoundView: View {
                      ? (live.partial.done.isEmpty
                         ? (lastAuthors.isEmpty ? "\(branch.characters.count) people deciding what to say" : "reacting to \(lastAuthors.sorted().map { "@\($0)" }.joined(separator: ", "))")
                         : "\(live.partial.done.count) posted so far")
-                     : "ChatGPT answers all at once · the whole round lands together")
+                     : "this provider answers all at once · the whole round lands together")
                     .font(.mono(10)).foregroundStyle(Color.muted)
             }
             Spacer(minLength: 0)

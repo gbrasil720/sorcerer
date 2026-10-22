@@ -1612,7 +1612,7 @@ const FAQ = [
   ],
   [
     "Where does my data live?",
-    "In ~/Sorcerer on your Mac, as plain JSON you can read, back up or delete. When a round runs on Claude or ChatGPT, only what that round needs is sent to that provider; local Ollama and LM Studio servers keep inference on your Mac. Remote servers receive that context; API keys stay in Keychain.",
+    "In ~/Sorcerer on your Mac, as plain JSON you can read, back up or delete. When a round runs on Claude or ChatGPT, only what that round needs is sent to that provider; local Ollama and LM Studio servers keep inference on your Mac. Remote servers receive that context. OpenAI-compatible endpoint keys stay in Keychain; each CLI manages its own authentication.",
   ],
   [
     "Which AI can I use?",
