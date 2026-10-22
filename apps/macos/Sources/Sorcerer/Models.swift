@@ -1,21 +1,29 @@
 import Foundation
 
 enum Provider: String, Codable, CaseIterable, Identifiable {
-    case claude, codex, ollama
+    case claude, codex, ollama, gemini, compatible
 
+    var binary: String { self == .claude ? "claude" : self == .codex ? "codex" : "gemini" }
+    var loginCommand: String { self == .codex ? "codex login" : binary }
+    var streams: Bool { self == .claude || self == .ollama }
+    var usageDetail: String { self == .ollama ? "server model · usage not reported" : self == .claude ? "measured on the next call" : "usage not reported" }
     var id: String { rawValue }
     var label: String {
         switch self {
         case .claude: "Claude"
         case .codex: "ChatGPT"
         case .ollama: "Ollama"
+        case .gemini: "Gemini"
+        case .compatible: "OpenAI-compatible"
         }
     }
     var via: String {
         switch self {
         case .claude: "via Claude Code"
         case .codex: "via Codex CLI"
-        case .ollama: "localhost:11434"
+        case .ollama: "via Ollama server"
+        case .gemini: "via Gemini CLI"
+        case .compatible: "via your endpoint"
         }
     }
 }
@@ -196,6 +204,8 @@ struct Settings: Codable, Equatable {
     var reports = Provider.claude
     var chats = Provider.claude
     var ollamaModel = ""
+    var ollamaHost: String?
+    var compatibleURL: String?
     var maxRounds = 10
     /// Pause a run when a provider's usage window reaches this percent. nil = 90, 0 = never.
     var pauseAt: Int?
