@@ -1,9 +1,9 @@
 # Sorcerer
 
-> Sorcerer is a free, open-source (MIT), native macOS app that simulates small communities of AI agents around a "what if…?" question. You summon characters with personalities, goals, relationships and memory, drop in a hypothesis, and watch opinions form, collide and spread round by round. It is local-first and runs on the AI subscriptions you already have: the Claude CLI (Claude Code), the Codex CLI (ChatGPT) or Ollama. It is made for curiosity and fun, not forecasting.
+> Sorcerer is a free, open-source (MIT), native macOS app that simulates small communities of AI agents around a "what if…?" question. You summon characters with personalities, goals, relationships and memory, drop in a hypothesis, and watch opinions form, collide and spread round by round. It is local-first and runs on CLI sessions (Claude Code, Codex or Gemini), Ollama, LM Studio or an OpenAI-compatible endpoint. It is made for curiosity and fun, not forecasting.
 
 - Platform: macOS 15 or later, Apple silicon and Intel (universal app), built with SwiftUI, no dependencies
-- Price: free; no account, no server, no API keys required
+- Price: free; no Sorcerer account or server; API keys optional, remote API usage may be billed
 - Data: everything is stored as plain JSON in ~/Sorcerer on your Mac
 - Inspired by MiroFish; a separate, from-scratch implementation
 
