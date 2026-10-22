@@ -2,10 +2,10 @@
 # Builds Sorcerer.app (release) next to this script.
 #   ./bundle.sh                 this Mac's architecture, quick
 #   UNIVERSAL=1 ./bundle.sh     Apple silicon + Intel, what releases ship
-#   VERSION=0.2.0 ./bundle.sh   version shown in About and Finder (default: 0.5.3)
+#   VERSION=0.2.0 ./bundle.sh   version shown in About and Finder (default: 0.6.0)
 set -e
 cd "$(dirname "$0")"
-VERSION=${VERSION:-0.5.3}
+VERSION=${VERSION:-0.6.0}
 if [ -n "$UNIVERSAL" ]; then set -- --arch arm64 --arch x86_64; fi
 swift build -c release "$@"
 # Ask SwiftPM where it put the binary: the folder differs between toolchains.
