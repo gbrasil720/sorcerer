@@ -97,6 +97,7 @@ private struct ProvidersPane: View {
     @State private var models: [Provider: [AI.ModelOption]] = [:]
     @State private var tests: [Provider: Test] = [:]
     @State private var endpointKey = ""
+    @State private var endpointDraft = "http://localhost:1234/v1"
     @State private var keyMessage = ""
     @State private var connectionError = ""
 
@@ -109,6 +110,7 @@ private struct ProvidersPane: View {
             }
             ForEach(Provider.allCases) { p in card(p) }
         }
+        .onAppear { endpointDraft = store.settings.compatibleURL ?? "http://localhost:1234/v1" }
         .task { await scan() }
     }
 
@@ -168,11 +170,14 @@ private struct ProvidersPane: View {
                 Button("Groq") { changeEndpoint("https://api.groq.com/openai/v1") }
                 Button("OpenAI") { changeEndpoint("https://api.openai.com/v1") }
             }.fixedSize()
-            TextField("Base URL including /v1", text: Binding(get: { store.settings.compatibleURL ?? "http://localhost:1234/v1" }, set: { changeEndpoint($0) }))
+            TextField("Base URL including /v1", text: $endpointDraft, onEditingChanged: { editing in
+                if !editing { changeEndpoint(endpointDraft) }
+            })
                 .textFieldStyle(.roundedBorder)
+                .onSubmit { changeEndpoint(endpointDraft) }
             HStack {
                 SecureField("API key (optional for local servers)", text: $endpointKey).textFieldStyle(.roundedBorder)
-                Button("save key") { saveKey() }.buttonStyle(SButton()).disabled(endpointKey.isEmpty)
+                Button("save key") { saveKey() }.buttonStyle(SButton()).disabled(endpointKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Button("remove key") { endpointKey = ""; saveKey() }.buttonStyle(SButton())
             }
             Text("Keys are saved per endpoint in Keychain. Enter a new key after changing hosts. Remote endpoints receive your simulation context and may charge per request.")
@@ -186,6 +191,9 @@ private struct ProvidersPane: View {
     }
 
     private func changeEndpoint(_ url: String) {
+        let url = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        endpointDraft = url
+        guard url != (store.settings.compatibleURL ?? "http://localhost:1234/v1") else { return }
         store.settings.compatibleURL = url
         endpointKey = ""
         keyMessage = ""
