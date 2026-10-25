@@ -106,7 +106,7 @@ struct FeedScreen: View {
                         .disabled(store.busy != nil)
                         .card(.line, dashed: true)
                     }
-                    ForEach((latestOnly ? max(1, b.round) : 1)..<(max(1, b.round) + 1), id: \.self) { r in roundSection(r, b) }
+                    ForEach((latestOnly ? max(1, b.round) : 1)..<max(1, b.round + 1), id: \.self) { r in roundSection(r, b) }
                     if let live = store.live, live.branch == b.id, store.replay == nil {
                         LiveRoundView(live: live, branch: b)
                     }
