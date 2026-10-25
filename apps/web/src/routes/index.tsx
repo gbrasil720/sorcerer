@@ -1093,7 +1093,7 @@ function Inside() {
           n="02"
           tag="conversations"
           title="Pull anyone aside and ask why."
-          body="Chat one-on-one with any character mid-simulation. Conversations stay saved on your Mac, per branch. Off the record stays out of character memories and share exports."
+          body="Chat one-on-one with any character mid-simulation. Conversations stay saved on your Mac, per branch. No chat transcripts are included in share exports. Off-the-record chats leave memories unchanged; in-world memories stay in the simulation."
           flip
         >
           <Card className="p-6">
