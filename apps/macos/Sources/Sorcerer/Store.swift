@@ -25,7 +25,6 @@ final class Store {
     var running = false
     var busy: String?
     var error: String?
-    var chats: [String: [ChatLine]] = [:]
     var usage: [Provider: Usage] = [:]
     var pausedUntil: Date?
     /// Post to scroll to and highlight when the feed opens (from a report citation).
@@ -50,7 +49,7 @@ final class Store {
     /// A poll waiting for answers, shown in the feed the moment it's sent.
     var livePoll: LivePoll?
     /// A character's answer as it streams into the 1:1 chat.
-    var chatDraft: (handle: String, text: String)?
+    var chatDraft: (experiment: UUID, branch: UUID, handle: String, text: String)?
     /// Which settings pane to show when the settings window opens (set by shortcuts into it).
     var settingsPane = SettingsPane.providers
     /// Bumped to put the cursor in the feed's inject field (⌘E).
@@ -62,19 +61,23 @@ final class Store {
     let updater = Updater()
 
     static let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Sorcerer")
-    private static let worlds = root.appendingPathComponent("experiments")
-    private static let settingsFile = root.appendingPathComponent("settings.json")
-    private static let contextDir = root.appendingPathComponent("contexts")
+    private let worlds: URL
+    private let settingsFile: URL
+    private let contextDir: URL
 
-    init() {
-        try? FileManager.default.createDirectory(at: Self.worlds, withIntermediateDirectories: true)
-        if let data = try? Data(contentsOf: Self.settingsFile),
+    init(root: URL? = nil) {
+        let root = root ?? Self.root
+        worlds = root.appendingPathComponent("experiments")
+        settingsFile = root.appendingPathComponent("settings.json")
+        contextDir = root.appendingPathComponent("contexts")
+        try? FileManager.default.createDirectory(at: worlds, withIntermediateDirectories: true)
+        if let data = try? Data(contentsOf: settingsFile),
            let s = try? JSONDecoder().decode(Settings.self, from: data) { settings = s }
-        let files = (try? FileManager.default.contentsOfDirectory(at: Self.worlds, includingPropertiesForKeys: nil)) ?? []
+        let files = (try? FileManager.default.contentsOfDirectory(at: worlds, includingPropertiesForKeys: nil)) ?? []
         experiments = files.compactMap { try? JSONDecoder().decode(Experiment.self, from: Data(contentsOf: $0)) }
             .sorted { $0.created > $1.created }
-        try? FileManager.default.createDirectory(at: Self.contextDir, withIntermediateDirectories: true)
-        contexts = ((try? FileManager.default.contentsOfDirectory(at: Self.contextDir, includingPropertiesForKeys: nil)) ?? [])
+        try? FileManager.default.createDirectory(at: contextDir, withIntermediateDirectories: true)
+        contexts = ((try? FileManager.default.contentsOfDirectory(at: contextDir, includingPropertiesForKeys: nil)) ?? [])
             .compactMap { try? JSONDecoder().decode(Brief.self, from: Data(contentsOf: $0)) }
             .sorted { $0.title < $1.title }
         if let first = experiments.first { apply(Place(experiment: first.id, branch: first.branches.last?.id, route: .feed)) }
@@ -83,11 +86,15 @@ final class Store {
     // MARK: persistence
 
     func saveSettings() {
-        try? JSONEncoder().encode(settings).write(to: Self.settingsFile, options: .atomic)
+        try? JSONEncoder().encode(settings).write(to: settingsFile, options: .atomic)
     }
 
     private func save(_ e: Experiment) {
-        try? JSONEncoder().encode(e).write(to: Self.worlds.appendingPathComponent("\(e.id).json"), options: .atomic)
+        do {
+            try JSONEncoder().encode(e).write(to: worlds.appendingPathComponent("\(e.id).json"), options: .atomic)
+        } catch {
+            self.error = "Couldn't save this experiment on disk: " + error.localizedDescription
+        }
     }
 
     // MARK: selection
@@ -186,16 +193,16 @@ final class Store {
         save(experiments[i])
     }
 
-    private func mutateBranch(_ f: (inout Branch) throws -> Void) rethrows {
-        guard let i = experiments.firstIndex(where: { $0.id == selected }),
-              let j = experiments[i].branches.firstIndex(where: { $0.id == branchID }) else { return }
+    private func mutateBranch(experimentID: UUID? = nil, branchID targetBranch: UUID? = nil, _ f: (inout Branch) throws -> Void) rethrows {
+        guard let i = experiments.firstIndex(where: { $0.id == (experimentID ?? selected) }),
+              let j = experiments[i].branches.firstIndex(where: { $0.id == (targetBranch ?? branchID) }) else { return }
         try f(&experiments[i].branches[j])
         save(experiments[i])
     }
 
     func delete(_ id: UUID) {
         experiments.removeAll { $0.id == id }
-        try? FileManager.default.removeItem(at: Self.worlds.appendingPathComponent("\(id).json"))
+        try? FileManager.default.removeItem(at: worlds.appendingPathComponent("\(id).json"))
         back.removeAll { $0.experiment == id }
         forward.removeAll { $0.experiment == id }
         if selected == id { apply(Place(experiment: nil, branch: nil, route: .new)) }
@@ -276,7 +283,7 @@ final class Store {
 
     func saveContext(_ brief: Brief) {
         let file = brief.title.lowercased().split { !$0.isLetter && !$0.isNumber }.joined(separator: "-")
-        try? JSONEncoder().encode(brief).write(to: Self.contextDir.appendingPathComponent("\(file.isEmpty ? "context" : file).json"), options: .atomic)
+        try? JSONEncoder().encode(brief).write(to: contextDir.appendingPathComponent("\(file.isEmpty ? "context" : file).json"), options: .atomic)
         contexts.removeAll { $0.title == brief.title }
         contexts.append(brief)
         contexts.sort { $0.title < $1.title }
@@ -462,11 +469,36 @@ final class Store {
         }
     }
 
-    func inject(_ text: String) {
+    /// Schedule, edit or remove only future events while the branch is idle.
+    @discardableResult
+    func schedule(_ text: String, at round: Int, replacing id: UUID? = nil) -> Bool {
+        guard let b = branch, replay == nil, busy == nil, !running,
+              round > b.round, round <= roundLimit else { return false }
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty else { return }
-        replay = nil
-        mutateBranch { $0.events.append(WorldEvent(round: $0.round + 1, text: t)) }
+        guard !t.isEmpty else { return false }
+        if let id, !b.events.contains(where: { $0.id == id && $0.round > b.round }) { return false }
+        mutateBranch { b in
+            if let id, let i = b.events.firstIndex(where: { $0.id == id }) {
+                b.events[i].text = t
+                b.events[i].round = round
+                // The revised plan only exists from this round onward.
+                b.events[i].plannedAt = b.round
+            } else {
+                b.events.append(WorldEvent(round: round, text: t, plannedAt: b.round))
+            }
+            b.events.sort { $0.round < $1.round }
+        }
+        return true
+    }
+
+    func inject(_ text: String) {
+        guard let b = branch else { return }
+        schedule(text, at: b.round + 1)
+    }
+
+    func removeScheduledEvent(_ id: UUID) {
+        guard let b = branch, replay == nil, busy == nil, !running else { return }
+        mutateBranch { $0.events.removeAll { $0.id == id && $0.round > b.round } }
     }
 
     /// Fork the round on screen (the replayed one, or now): same people, same memories up to
@@ -492,10 +524,12 @@ final class Store {
             var people = e.cast ?? branch?.characters ?? []
             for i in people.indices { people[i].memories = [] }
             var b = Branch(name: "A", characters: people)
+            b.events = (branch?.events ?? []).filter { $0.plannedAt == 0 }
             b.moodByRound = [Engine.averageMood(b)]
             e.branches = [b]
             e.report = nil
         }
+        for i in e.branches.indices { e.branches[i].chats = nil }
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try? enc.encode(e)
@@ -541,29 +575,44 @@ final class Store {
         navigate(Place(experiment: selected, branch: hit.branch.id, route: .feed))
     }
 
-    /// Off the record by default. In-world, the character remembers the conversation.
+    /// Replies are saved to the originating branch, even if navigation changes during the call.
     func chat(with p: Persona, _ question: String, inWorld: Bool = false) async {
-        guard let e = experiment else { return }
-        let history = chats[p.handle] ?? []
-        chats[p.handle] = history + [ChatLine(fromUser: true, text: question)]
+        let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let e = experiment, let b = branch, !q.isEmpty, busy == nil, !running, replay == nil,
+              b.characters.contains(where: { $0.handle == p.handle }) else { return }
+        let history = b.chats?[p.handle] ?? []
+        mutateBranch { b in
+            var saved = b.chats ?? [:]
+            saved[p.handle, default: []].append(ChatLine(fromUser: true, text: q, round: b.round, inWorld: inWorld))
+            b.chats = saved
+        }
         do {
-            chatDraft = (p.handle, "")
+            chatDraft = (e.id, b.id, p.handle, "")
             defer { chatDraft = nil }
-            let reply = try await ask(Engine.chatPrompt(e, p, history: history, question: question), settings.chats, "@\(p.handle) is typing…") { [weak self] text in
-                // Late chunks can land after the reply is done; only update the draft still open.
-                guard let self, self.chatDraft?.handle == p.handle else { return }
-                self.chatDraft = (p.handle, text)
+            let reply = try await ask(Engine.chatPrompt(e, p, history: history, question: q, inWorld: inWorld), settings.chats, "@\(p.handle) is typing…") { [weak self] text in
+                guard let self, self.chatDraft?.experiment == e.id, self.chatDraft?.branch == b.id,
+                      self.chatDraft?.handle == p.handle else { return }
+                self.chatDraft = (e.id, b.id, p.handle, text)
             }
-            let answer = reply.trimmingCharacters(in: .whitespacesAndNewlines)
-            chats[p.handle, default: []].append(ChatLine(fromUser: false, text: answer))
-            if inWorld, let r = branch?.round {
-                mutateBranch { b in
-                    guard let i = b.characters.firstIndex(where: { $0.handle == p.handle }) else { return }
-                    b.characters[i].memories.append("r\(r): someone asked me \"\(question)\"; I said \"\(answer.prefix(140))\"")
-                }
-            }
+            saveChatReply(reply, to: p.handle, experimentID: e.id, branchID: b.id, round: b.round, question: q, inWorld: inWorld)
         } catch {
             self.error = error.localizedDescription
+        }
+    }
+
+    /// Persist a completed reply without redirecting it into the currently selected world.
+    func saveChatReply(_ reply: String, to handle: String, experimentID: UUID, branchID: UUID,
+                       round: Int, question: String, inWorld: Bool) {
+        let answer = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !answer.isEmpty else { return }
+        mutateBranch(experimentID: experimentID, branchID: branchID) { b in
+            guard let i = b.characters.firstIndex(where: { $0.handle == handle }) else { return }
+            var saved = b.chats ?? [:]
+            saved[handle, default: []].append(ChatLine(fromUser: false, text: answer, round: round, inWorld: inWorld))
+            b.chats = saved
+            if inWorld {
+                b.characters[i].memories.append("r\(round): someone asked me \"\(question)\"; I said \"\(answer.prefix(140))\"")
+            }
         }
     }
 

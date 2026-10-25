@@ -537,7 +537,8 @@ enum Engine {
         var out = b
         out.round = n
         out.posts = b.posts.filter { $0.round <= n }
-        out.events = b.events.filter { $0.round <= n }
+        out.events = b.events.filter { $0.round <= n || ($0.plannedAt.map { $0 <= n } ?? false) }
+        out.chats = b.chats?.mapValues { $0.filter { ($0.round ?? 0) <= n } }.filter { !$0.value.isEmpty }
         out.moodByRound = Array(b.moodByRound.prefix(n + 1))
         out.actions = b.actions?.filter { $0.round <= n }
         out.polls = b.polls?.filter { $0.round <= n }
@@ -570,8 +571,9 @@ enum Engine {
 
     // MARK: chat & report
 
-    static func chatPrompt(_ e: Experiment, _ p: Persona, history: [ChatLine], question: String) -> String {
-        let convo = (history + [ChatLine(fromUser: true, text: question)])
+    static func chatPrompt(_ e: Experiment, _ p: Persona, history: [ChatLine], question: String, inWorld: Bool = false) -> String {
+        let visible = history.filter { ($0.inWorld ?? false) == inWorld }
+        let convo = (visible + [ChatLine(fromUser: true, text: question)])
             .map { "\($0.fromUser ? "you" : p.handle): \($0.text)" }.joined(separator: "\n")
         return """
         You are @\(p.handle), a character in a social simulation. \(p.role). \(p.bio)
@@ -580,7 +582,7 @@ enum Engine {
         Your memories: \(p.memories.joined(separator: "; "))
         Your mood about "What if \(e.hypothesis)" is \(String(format: "%.1f", p.mood)) on a -1..1 scale.
         \(knowledge(e, [p]))
-        Answer off the record, in character, in 2-4 sentences. Plain text only.
+        Answer in character, in 2-4 sentences. Plain text only. \(inWorld ? "The character will remember this conversation." : "This conversation is off the record and changes nothing in the world.")
 
         \(convo)
         \(p.handle):
@@ -631,7 +633,7 @@ enum Engine {
             ## Branch \(b.name)\(b.parent.map { " (\($0))" } ?? "") — \(b.round) rounds
             Average mood by round: \(b.moodByRound.map { String(format: "%.2f", $0) }.joined(separator: ", "))
             Final moods: \(b.characters.map { "\($0.handle) \(String(format: "%.1f", $0.mood))" }.joined(separator: ", "))
-            Events: \(b.events.map { "r\($0.round) \($0.text)" }.joined(separator: "; "))\(actionsAndPolls(b))
+            Events: \(b.events.filter { $0.round <= b.round }.map { "r\($0.round) \($0.text)" }.joined(separator: "; "))\(actionsAndPolls(b))
             Posts (id in brackets):
             \(b.posts.enumerated().map { "[\(b.name)\($0.offset + 1)] r\($0.element.round) @\($0.element.author): \($0.element.text)" }.joined(separator: "\n"))
             """
