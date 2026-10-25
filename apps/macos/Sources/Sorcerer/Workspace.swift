@@ -5,6 +5,9 @@ import SwiftUI
 struct FeedScreen: View {
     @Environment(Store.self) private var store
     @State private var event = ""
+    @State private var eventRound: Int?
+    @State private var editingEvent: UUID?
+    @State private var plansOpen = false
     @State private var who: String? = nil
     @State private var latestOnly = false
     @FocusState private var injecting: Bool
@@ -53,34 +56,37 @@ struct FeedScreen: View {
 
     private func filterBar(_ b: Branch) -> some View {
         @Bindable var store = store
-        return HStack {
-            Tabs(options: FeedView.allCases.map { ($0, $0.rawValue) }, selection: $view)
-            Spacer()
-            if view == .feed {
-            Text("filter:").foregroundStyle(Color.muted)
-            Menu(who.map { "@\($0)" } ?? "all characters") {
-                Button("all characters") { who = nil }
-                Divider()
-                ForEach(b.characters) { c in Button("@\(c.handle)") { who = c.handle } }
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                Tabs(options: FeedView.allCases.map { ($0, $0.rawValue) }, selection: $view)
+                if view == .feed {
+                    Text("filter:").foregroundStyle(Color.muted)
+                    Menu(who.map { "@\($0)" } ?? "all characters") {
+                        Button("all characters") { who = nil }
+                        Divider()
+                        ForEach(b.characters) { c in Button("@\(c.handle)") { who = c.handle } }
+                    }
+                    .menuStyle(.borderlessButton).fixedSize().tint(Color.muted)
+                    Text("·").foregroundStyle(Color.muted)
+                    Menu(latestOnly ? "latest round" : "all rounds") {
+                        Button("all rounds") { latestOnly = false }
+                        Button("latest round") { latestOnly = true }
+                    }
+                    .menuStyle(.borderlessButton).fixedSize().tint(Color.muted)
+                    Text("·").foregroundStyle(Color.muted)
+                }
+                Text("speed").foregroundStyle(Color.muted)
+                Tabs(options: [(12.0, "½×"), (4.0, "1×"), (0.0, "max")], selection: Binding(
+                    get: { store.settings.roundGap ?? 4 },
+                    set: { store.settings.roundGap = $0; store.saveSettings() }
+                ))
+                .help("Pause between rounds while running: ½× waits 12s, 1× waits 4s, max doesn't wait")
             }
-            .menuStyle(.borderlessButton).fixedSize().tint(Color.muted)
-            Text("·").foregroundStyle(Color.muted)
-            Menu(latestOnly ? "latest round" : "all rounds") {
-                Button("all rounds") { latestOnly = false }
-                Button("latest round") { latestOnly = true }
-            }
-            .menuStyle(.borderlessButton).fixedSize().tint(Color.muted)
-            Text("·").foregroundStyle(Color.muted)
-            }
-            Text("speed").foregroundStyle(Color.muted)
-            Tabs(options: [(12.0, "½×"), (4.0, "1×"), (0.0, "max")], selection: Binding(
-                get: { store.settings.roundGap ?? 4 },
-                set: { store.settings.roundGap = $0; store.saveSettings() }
-            ))
-            .help("Pause between rounds while running: ½× waits 12s, 1× waits 4s, max doesn't wait")
+            .fixedSize(horizontal: true, vertical: false)
+            .font(.mono(11))
+            .padding(.horizontal, 18).padding(.vertical, 10)
         }
-        .font(.mono(11))
-        .padding(.horizontal, 18).padding(.vertical, 10)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func feed(_ e: Experiment, _ b: Branch) -> some View {
@@ -100,13 +106,14 @@ struct FeedScreen: View {
                         .disabled(store.busy != nil)
                         .card(.line, dashed: true)
                     }
-                    ForEach((latestOnly ? max(1, b.round) : 1)..<(b.round + 2), id: \.self) { r in roundSection(r, b) }
+                    ForEach((latestOnly ? max(1, b.round) : 1)..<(max(1, b.round) + 1), id: \.self) { r in roundSection(r, b) }
                     if let live = store.live, live.branch == b.id, store.replay == nil {
                         LiveRoundView(live: live, branch: b)
                     }
                     if let poll = store.livePoll, poll.branch == b.id {
                         LivePollCard(poll: poll, branch: b)
                     }
+                    ForEach(Array(Set(b.events.filter { $0.round > b.round }.map(\.round))).sorted(), id: \.self) { r in roundSection(r, b) }
                     Color.clear.frame(height: 1).id("end")
                 }
                 .padding(.horizontal, 18).padding(.bottom, 18)
@@ -138,7 +145,7 @@ struct FeedScreen: View {
             .padding(.top, 8)
         }
         ForEach(events) { ev in
-            Text("⚡ event · injected by you — \(ev.text)\(r > b.round ? "  (next round)" : "")")
+            Text("⚡ event · \(ev.text)\(r > b.round ? "  (scheduled for r\(r))" : "")")
                 .font(.mono(11)).foregroundStyle(Color.ember)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .card(.ember, dashed: true)
@@ -151,7 +158,7 @@ struct FeedScreen: View {
     private func injectBar(_ b: Branch) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                Tabs(options: [(false, "⚡ event"), (true, "? ask everyone")], selection: $asking)
+                Tabs(options: [(false, "⚡ event"), (true, "? ask everyone")], selection: $asking).fixedSize()
                 if asking {
                     TextField("Ask everyone something… e.g. Would you pay $14 a month?", text: $question)
                         .textFieldStyle(.plain).font(.mono(12))
@@ -168,10 +175,27 @@ struct FeedScreen: View {
                         .textFieldStyle(.plain).font(.mono(12))
                         .focused($injecting)
                         .onSubmit(send)
-                    Text("⌘E · ↵ at r\(b.round + 1)").font(.mono(10)).foregroundStyle(Color.muted)
-                    Button("inject", action: send).buttonStyle(SButton())
-                        .disabled(event.isEmpty)
                 }
+            }
+            if !asking {
+                HStack(spacing: 12) {
+                    Stepper("r\(max(b.round + 1, eventRound ?? b.round + 1))", value: Binding(
+                        get: { max(b.round + 1, eventRound ?? b.round + 1) }, set: { eventRound = $0 }
+                    ), in: (b.round + 1)...max(b.round + 1, store.roundLimit))
+                        .font(.mono(11)).fixedSize().accessibilityLabel("Event round")
+                    Button("planned (\(b.events.filter { $0.round > b.round }.count))") { plansOpen.toggle() }
+                        .buttonStyle(SButton())
+                    Button(editingEvent == nil ? "schedule" : "save event", action: send).buttonStyle(SButton())
+                        .disabled(event.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.busy != nil || store.running || store.replay != nil || b.round >= store.roundLimit)
+                    Spacer(minLength: 0)
+                }
+                HStack {
+                    Text(store.replay != nil ? "Fork this round to change the plan." : b.round >= store.roundLimit ? "The configured round limit has been reached." : "Events reach the world only at their scheduled round. Pause before editing.")
+                        .font(.mono(10)).foregroundStyle(Color.muted)
+                    Spacer()
+                    if editingEvent != nil { Button("cancel edit") { resetEvent() }.buttonStyle(SButton()) }
+                }
+                if plansOpen { ScrollView { plannedEvents(b) }.frame(maxHeight: 180) }
             }
             if asking {
                 HStack(spacing: 14) {
@@ -191,6 +215,9 @@ struct FeedScreen: View {
                 }
             }
         }
+        .onChange(of: store.branchID) { resetEvent(); plansOpen = false }
+        .onChange(of: store.selected) { resetEvent(); plansOpen = false }
+        .onChange(of: b.round) { resetEvent() }
         .onChange(of: store.focusInject) { asking = false; injecting = true }
         .onChange(of: store.focusPoll) { asking = true; injecting = true }
         .onAppear { if store.focusInject > 0 || store.focusPoll > 0 { injecting = true } }
@@ -206,9 +233,35 @@ struct FeedScreen: View {
         Task { await store.poll(q, options: opts, open: publicPoll, every: every == 0 ? nil : every) }
     }
 
-    private func send() {
-        store.inject(event)
+    private func plannedEvents(_ b: Branch) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            let events = b.events.filter { $0.round > b.round }.sorted { $0.round < $1.round }
+            if events.isEmpty { Text("No future events. Choose a round and schedule one.").font(.mono(11)).foregroundStyle(Color.muted) }
+            ForEach(events) { ev in
+                HStack(alignment: .top, spacing: 10) {
+                    Text("r\(ev.round)").font(.mono(11, .semibold)).foregroundStyle(Color.ember)
+                    Text(ev.text).font(.display(12, .regular)).frame(maxWidth: .infinity, alignment: .leading)
+                    Button("edit") { event = ev.text; eventRound = ev.round; editingEvent = ev.id; injecting = true }
+                        .buttonStyle(SButton())
+                    Button("remove") { store.removeScheduledEvent(ev.id); if editingEvent == ev.id { resetEvent() } }
+                        .buttonStyle(SButton())
+                }
+                .disabled(store.busy != nil || store.running || store.replay != nil)
+            }
+        }
+    }
+
+    private func resetEvent() {
         event = ""
+        eventRound = nil
+        editingEvent = nil
+    }
+
+    private func send() {
+        guard let b = store.branch else { return }
+        if store.schedule(event, at: max(b.round + 1, eventRound ?? b.round + 1), replacing: editingEvent) {
+            resetEvent()
+        }
     }
 }
 
