@@ -16,7 +16,7 @@ const CHANGELOG_URL = `${GITHUB_URL}/releases`;
 const ISSUES_URL = `${GITHUB_URL}/issues/new/choose`;
 // Downloading with curl skips the quarantine flag that makes macOS block unsigned apps.
 const INSTALL_CMD = "curl -fsSL https://sorcererapp.dev/install.sh | sh";
-const VERSION = "v0.6";
+const VERSION = "v0.7";
 const LICENSE = "MIT";
 
 /** Live star count from GitHub; null until it loads (or if the API is unreachable). */
@@ -1093,7 +1093,7 @@ function Inside() {
           n="02"
           tag="conversations"
           title="Pull anyone aside and ask why."
-          body="Chat one-on-one with any character mid-simulation. Every answer comes from what they remember, and off the record means it stays out of the world."
+          body="Chat one-on-one with any character mid-simulation. Conversations stay saved on your Mac, per branch. Off the record stays out of character memories and share exports."
           flip
         >
           <Card className="p-6">
