@@ -14,13 +14,15 @@ open an issue first so we can agree on the shape (see [CONTRIBUTING.md](CONTRIBU
 
 - [x] **More providers:** configurable Ollama host, Gemini CLI, LM Studio, and an API key or custom OpenAI-compatible endpoint.
 
+- [x] **Scheduled events:** choose a future round, edit or remove pending events, and carry plans into forks.
+- [x] **Saved 1:1 chats:** branch-local conversations persist on the Mac; transcripts stay out of share exports.
+
 ## Next
 
 - [ ] **DMs and group chats:** characters talk in private channels, so gossip spreads differently from what's said in public.
 
 ## Richer simulations
 
-- [ ] **Scheduled events:** plan ahead ("news breaks in round 3, the price changes in round 5").
 - [ ] **Who hears first:** start the news with an influencer or a skeptic and see whether it spreads differently.
 - [ ] **You as a character:** post inside the world and see how people react.
 - [ ] **Repeat runs:** run the same question several times to see how much the outcome varies.
@@ -41,7 +43,6 @@ open an issue first so we can agree on the shape (see [CONTRIBUTING.md](CONTRIBU
 
 - [ ] Delete branches, edit or remove injected events, and undo.
 - [ ] Change ties or remove a character mid-run.
-- [ ] Save 1:1 chats with the experiment.
 - [ ] Summarize large context files instead of cutting them at 20k characters.
 
 ## On the Mac

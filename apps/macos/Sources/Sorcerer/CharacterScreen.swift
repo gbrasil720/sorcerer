@@ -149,18 +149,20 @@ struct CharacterScreen: View {
     }
 
     private func chat(_ p: Persona) -> some View {
-        let lines = store.chats[p.handle] ?? []
+        let lines = store.branch?.chats?[p.handle] ?? []
         return VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Avatar(name: p.handle, size: 26)
                     Text("Talk to @\(p.handle)").font(.display(15))
                     Spacer()
-                    Tabs(options: [(false, "off the record"), (true, "in-world")], selection: $inWorld)
                 }
+                Tabs(options: [(false, "off the record"), (true, "in-world")], selection: $inWorld).fixedSize()
                 Text(inWorld
                      ? "In-world: \(p.handle) remembers this conversation and it can shape later rounds."
                      : "Off the record: \(p.handle) answers from memory. Nothing is added to the simulation.")
+                    .font(.mono(10)).foregroundStyle(Color.muted)
+                Text("Saved on this Mac for this branch · transcripts excluded from exports.")
                     .font(.mono(10)).foregroundStyle(Color.muted)
             }
             .padding(16)
@@ -168,14 +170,17 @@ struct CharacterScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(Array(lines.enumerated()), id: \.offset) { _, l in
-                        Text(l.text).font(.display(13, .regular)).textSelection(.enabled)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("r\(l.round ?? 0) · \(l.inWorld == true ? "in-world" : "off the record")").font(.mono(9)).foregroundStyle(Color.muted)
+                            Text(l.text).font(.display(13, .regular)).textSelection(.enabled)
+                        }
                             .padding(12)
                             .background(l.fromUser ? Color.line : Color.ink, in: .rect(cornerRadius: 10))
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(l.fromUser ? .clear : Color.line))
                             .frame(maxWidth: 320, alignment: l.fromUser ? .trailing : .leading)
                             .frame(maxWidth: .infinity, alignment: l.fromUser ? .trailing : .leading)
                     }
-                    if let d = store.chatDraft, d.handle == p.handle {
+                    if let d = store.chatDraft, d.handle == p.handle, d.experiment == store.selected, d.branch == store.branchID {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 6) {
                                 Text("@\(p.handle) is typing").font(.mono(10)).foregroundStyle(Color.ember)
@@ -198,17 +203,20 @@ struct CharacterScreen: View {
                 TextField("Ask @\(p.handle) anything…", text: $question)
                     .textFieldStyle(.plain).font(.display(13, .regular))
                     .onSubmit { send(p) }
-                Button("send") { send(p) }.buttonStyle(SButton(primary: true)).disabled(question.isEmpty || store.busy != nil)
+                Button("send") { send(p) }.buttonStyle(SButton(primary: true)).disabled(question.isEmpty || store.busy != nil || store.running || store.replay != nil)
             }
             .card()
             .padding(14)
         }
         .background(Color.sidebar)
+        .onChange(of: handle) { question = ""; inWorld = false }
+        .onChange(of: store.branchID) { question = ""; inWorld = false }
+        .onChange(of: store.selected) { question = ""; inWorld = false }
     }
 
     private func send(_ p: Persona) {
         let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty, store.busy == nil else { return }
+        guard !q.isEmpty, store.busy == nil, !store.running, store.replay == nil else { return }
         question = ""
         Task { await store.chat(with: p, q, inWorld: inWorld) }
     }

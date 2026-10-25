@@ -114,6 +114,8 @@ struct WorldEvent: Codable, Identifiable, Hashable {
     var id = UUID()
     var round: Int
     var text: String
+    /// When this plan was created; used to keep only plans known at a fork point.
+    var plannedAt: Int?
 }
 
 struct Report: Codable, Hashable {
@@ -174,6 +176,8 @@ struct Branch: Codable, Identifiable, Hashable {
     /// What people did, round by round. Optional so older worlds still load.
     var actions: [Action]?
     var polls: [Poll]?
+    /// Local transcripts by character, isolated to this branch and excluded from exports.
+    var chats: [String: [ChatLine]]?
 }
 
 struct Experiment: Codable, Identifiable, Hashable {
@@ -239,9 +243,11 @@ struct Usage: Hashable {
     }
 }
 
-struct ChatLine: Hashable {
+struct ChatLine: Codable, Hashable {
     var fromUser: Bool
     var text: String
+    var round: Int?
+    var inWorld: Bool?
 }
 
 let environments = ["social feed", "forum", "group chat", "town square", "workplace"]

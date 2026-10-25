@@ -111,6 +111,14 @@ another experiment. Edit anyone before round 1: roles, insiders, who's in.
 
 <img src="docs/screenshots/new-experiment-community.png" alt="New experiment: summon and edit the community of AI characters" width="100%">
 
+### Schedule what happens next
+
+In the feed's **event** composer, choose a round and click **schedule**. The event reaches the characters only when that round runs; reports leave future events out. **planned** lists future events, which you can edit or remove while the simulation is paused. Played events stay unchanged. Use a fork to explore a different past.
+
+Plans are local to each branch. A fork from the current round keeps its plan; a fork from a past round retains only plans created or last revised by that checkpoint. Fresh scenario exports keep the selected branch's round-zero plans. Later interventions remain in a full experiment export.
+
+<img src="docs/screenshots/roadmap/scheduled-events.png" alt="Future events with round selection, edit and remove controls" width="100%">
+
 ### Watching it happen
 
 Rounds stream in live: finished posts appear one by one, and whoever is mid-sentence shows up as
@@ -128,6 +136,14 @@ revolves around.
   <img src="docs/screenshots/world.png" alt="World view: the community as a map of ties" width="49%">
   <img src="docs/screenshots/graph.png" alt="Graph view: mood of each AI agent round by round" width="49%">
 </p>
+
+### Saved 1:1 conversations
+
+Character chats are saved automatically on this Mac, separately for every experiment, branch and character. Reopen the app to continue. Each message records its round and whether it was **off the record** or **in-world**. Forking from a past round keeps only conversations up to that round.
+
+Off-the-record chats do not change character memories and are excluded from the context of later in-world chats. In-world replies still create character memories that can affect later rounds. Chat transcripts are excluded from **both** experiment and fresh-scenario exports; in-world memories remain part of the simulation. Files in `~/Sorcerer/experiments` contain the local transcripts, so treat your own backups accordingly.
+
+<img src="docs/screenshots/roadmap/saved-chats.png" alt="A branch-local conversation saved with round and visibility labels" width="100%">
 
 ### Actions
 

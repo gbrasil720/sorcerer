@@ -9,6 +9,8 @@
 
 ## Features
 
+- Scheduled events: choose a future round; edit or remove pending events while paused; plans persist per branch
+- Saved 1:1 chats: transcripts persist locally per experiment and branch and are excluded from share exports
 - Experiments: write a what-if question, pick a setting (social feed, forum, group chat, town square, workplace), rounds and speed
 - Context brief: point it at a GitHub repo, folder, website or files; facts are tagged public, insider or hidden so each character only knows what they would know. Secrets like .env files are never read
 - Live rounds: characters post, reply to specific posts, react, remember, and are influenced by their ties; text streams in as it is written

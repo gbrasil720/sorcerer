@@ -547,7 +547,7 @@ function Feed({ b, focus }: { b: Branch; focus: string | null }) {
           return (
             <section key={r} aria-label={`Round ${r}`}>
               <div className="mb-4 flex items-center gap-3 font-mono text-muted text-xs tracking-widest">
-                ROUND {r}
+                {r > b.round ? "SCHEDULED · ROUND" : "ROUND"} {r}
                 <span className="h-px flex-1 bg-line" />
                 {b.moodByRound[r] != null && (
                   <span>mood {signed(b.moodByRound[r])}</span>
