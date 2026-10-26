@@ -17,6 +17,8 @@ open an issue first so we can agree on the shape (see [CONTRIBUTING.md](CONTRIBU
 - [x] **Scheduled events:** choose a future round, edit or remove pending events, and carry plans into forks.
 - [x] **Saved 1:1 chats:** branch-local conversations persist on the Mac; transcripts stay out of share exports.
 
+- [x] **Cast from a CSV:** import and review 2–16 characters from customer data or interview notes before starting.
+
 ## Next
 
 - [ ] **DMs and group chats:** characters talk in private channels, so gossip spreads differently from what's said in public.
@@ -36,7 +38,6 @@ open an issue first so we can agree on the shape (see [CONTRIBUTING.md](CONTRIBU
 
 ## People and data
 
-- [ ] **Cast from a CSV:** build characters from customer data or interview notes.
 - [ ] **Character library:** keep characters you like and reuse them across experiments.
 
 ## Editing

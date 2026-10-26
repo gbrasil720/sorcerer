@@ -1,0 +1,3 @@
+handle,role,bio,interests,goals,mood,insider
+ada,student,"Uses free notes, compares every price",notes|music,save money,-0.4,false
+ben,freelancer,Uses notes for client projects,sync|writing,work offline,0.2,true
