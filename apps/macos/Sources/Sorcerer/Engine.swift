@@ -150,12 +150,16 @@ enum Engine {
     /// Stable id of a post inside its branch: "B7" = seventh post of branch B.
     static func ref(_ b: Branch, _ index: Int) -> String { "\(b.name)\(index + 1)" }
 
+    private static func background(_ p: Persona) -> String {
+        "bio: \(p.bio) — interests: \(p.interests.joined(separator: ", ")) — goals: \(p.goals.joined(separator: "; ")) — traits: \(p.traits.map { "\($0.key) \(String(format: "%.1f", $0.value))" }.sorted().joined(separator: ", "))"
+    }
+
     static func roundPrompt(_ e: Experiment, _ b: Branch) -> String {
         let next = b.round + 1
         var did: [String: String] = [:]
         for a in b.actions ?? [] { did[a.who] = "r\(a.round) \(a.act)" }
         let cast = b.characters.map {
-            "- \($0.handle) — \($0.role) — mood \(String(format: "%.1f", $0.mood)) — ties: \(($0.ties ?? [:]).map { "\($0.key) (\($0.value))" }.sorted().joined(separator: ", ")) — remembers: \($0.memories.suffix(4).joined(separator: "; "))\(did[$0.handle].map { " — last did: \($0)" } ?? "")"
+            "- \($0.handle) — \($0.role) — \(background($0)) — mood \(String(format: "%.1f", $0.mood)) — ties: \(($0.ties ?? [:]).map { "\($0.key) (\($0.value))" }.sorted().joined(separator: ", ")) — remembers: \($0.memories.suffix(4).joined(separator: "; "))\(did[$0.handle].map { " — last did: \($0)" } ?? "")"
         }.joined(separator: "\n")
         let start = max(0, b.posts.count - 24)
         let feed = b.posts[start...].enumerated().map { i, p in
@@ -169,7 +173,7 @@ enum Engine {
         Hypothesis being explored: What if \(e.hypothesis)
         \(knowledge(e, b.characters))
 
-        Characters (handle — role — mood -1..1 — ties — memories):
+        Characters (handle — role — background — mood -1..1 — ties — memories):
         \(cast)
 
         Earlier events:
@@ -377,7 +381,7 @@ enum Engine {
     static func pollPrompt(_ e: Experiment, _ b: Branch, question: String, options: [String]) -> String {
         let gone = away(b)
         let people = b.characters.filter { !gone.contains($0.handle) }.map {
-            "- \($0.handle) — \($0.role) — mood \(String(format: "%.1f", $0.mood)) — traits: \($0.traits.map { "\($0.key) \(String(format: "%.1f", $0.value))" }.sorted().joined(separator: ", ")) — remembers: \($0.memories.suffix(5).joined(separator: "; "))"
+            "- \($0.handle) — \($0.role) — \(background($0)) — mood \(String(format: "%.1f", $0.mood)) — remembers: \($0.memories.suffix(5).joined(separator: "; "))"
         }.joined(separator: "\n")
         let recent = b.posts.suffix(12).map { "r\($0.round) @\($0.author): \($0.text)" }.joined(separator: "\n")
         return """
@@ -387,7 +391,7 @@ enum Engine {
         After round \(b.round), everyone is asked, privately and one by one: "\(question)"
         Options: \(options.map { "\"\($0)\"" }.joined(separator: ", "))
 
-        People (handle — role — mood -1..1 — traits — memories):
+        People (handle — role — background — mood -1..1 — memories):
         \(people)
 
         What was said lately:
