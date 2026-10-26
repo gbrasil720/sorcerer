@@ -122,7 +122,7 @@ Use 2–16 records, up to 128 KB, with a header row:
 | `handle` | Required, unique; 1–32 letters, numbers, `_` or `-`. Lowercased; an outer `@` is removed. |
 | `role` | Required, the person's role in this community. |
 | `bio` | Required, background or interview notes to ground the character. |
-| `interests`, `goals` | Optional, separate items with `|`. |
+| `interests`, `goals` | Optional, separate items with `\|`. |
 | `mood` | Optional number from -1 to 1; defaults to 0. |
 | `insider` | Optional `true` or `false`; defaults to false. |
 
