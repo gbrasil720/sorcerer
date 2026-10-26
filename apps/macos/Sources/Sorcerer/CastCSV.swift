@@ -69,8 +69,10 @@ enum CastCSV {
             field = ""; closed = false
         }
         func finishRow() {
+            // Delimiters and quoted empty fields are records, even with no nonempty values.
+            let hasRecord = !row.isEmpty || closed || !field.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             finishField()
-            if row.contains(where: { !$0.isEmpty }) { rows.append(row) }
+            if hasRecord { rows.append(row) }
             row = []
         }
         while let c = current {

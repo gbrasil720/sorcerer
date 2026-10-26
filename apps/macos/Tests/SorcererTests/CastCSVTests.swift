@@ -46,6 +46,14 @@ final class CastCSVTests: XCTestCase {
         XCTAssertEqual(cast.map(\.handle), ["josé", "lin"])
     }
 
+    func testRejectsEmptyRecordsRatherThanSilentlyDroppingThem() {
+        for record in [",,", "\"\"", "\"\",\"\",\"\""] {
+            for ending in ["", "\n", "\r\n"] {
+                XCTAssertThrowsError(try parse(simple + "\n" + record + ending), record)
+            }
+        }
+    }
+
     func testRejectsBadHeadersAndFieldCounts() {
         for csv in ["", "name,role,bio\na,b,c\nd,e,f", "handle,role,bio,role\na,b,c,d\ne,f,g,h",
                     "handle,role,bio,email\na,b,c,d\ne,f,g,h", simple + ",extra"] {
