@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 /// New experiment in three steps, each the same frame: what you fill in on the left,
 /// a live picture of the result on the right, back / next at the bottom.
 struct NewExperiment: View {
-    enum Mode: Hashable { case context, describe, reuse }
+    enum Mode: Hashable { case context, describe, reuse, csv }
     enum Step: Int, CaseIterable {
         case question = 1, context, community
         var title: String { ["question & rules", "context", "community & start"][rawValue - 1] }
@@ -50,6 +50,9 @@ struct NewExperiment: View {
     @State private var pickingFolder = false
     @State private var writing = false
     @State private var summoning = false
+    @State private var pickingCast = false
+    @State private var castFile: String?
+    @State private var castError: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,6 +83,21 @@ struct NewExperiment: View {
         .fileImporter(isPresented: $browsing, allowedContentTypes: [.plainText, .pdf, .commaSeparatedText, .json, .data],
                       allowsMultipleSelection: true) { result in
             if case .success(let urls) = result { urls.forEach(read) }
+        }
+        .fileImporter(isPresented: $pickingCast, allowedContentTypes: [.commaSeparatedText, .plainText]) { result in
+            switch result {
+            case .success(let url):
+                let access = url.startAccessingSecurityScopedResource()
+                defer { if access { url.stopAccessingSecurityScopedResource() } }
+                do {
+                    let imported = try CastCSV.read(url)
+                    cast = imported
+                    community = url.deletingPathExtension().lastPathComponent
+                    castFile = url.lastPathComponent
+                    castError = nil
+                } catch { castError = error.localizedDescription }
+            case .failure(let error): castError = error.localizedDescription
+            }
         }
         .fileImporter(isPresented: $pickingFolder, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { readFolder(url) }
@@ -453,9 +471,9 @@ struct NewExperiment: View {
     private var communityForm: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Tabs(options: [(Mode.context, "from context"), (.describe, "describe"), (.reuse, "reuse")], selection: $mode)
+                Tabs(options: [(Mode.context, "from context"), (.describe, "describe"), (.reuse, "reuse"), (.csv, "CSV")], selection: $mode)
                 Spacer()
-                if mode != .reuse {
+                if mode == .context || mode == .describe {
                     HStack(spacing: 14) {
                         Button("−") { count = max(2, count - 1) }.buttonStyle(.plain)
                         Text("\(count) people").font(.mono(12, .semibold))
@@ -496,6 +514,25 @@ struct NewExperiment: View {
                                 .font(.display(13, .regular)).foregroundStyle(Color.muted).padding(19).allowsHitTesting(false)
                         }
                     }
+            case .csv:
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Import 2–16 characters from a UTF-8 CSV.").font(.display(16))
+                    Text("Required: handle, role, bio. Optional: interests, goals, mood, insider. Separate interests and goals with |.")
+                        .font(.mono(11)).foregroundStyle(Color.muted)
+                    Text("No model call to import. Character details go to your chosen provider when used in a simulation or chat.")
+                        .font(.mono(10)).foregroundStyle(Color.muted)
+                    HStack {
+                        Button(castFile.map { "replace \($0)…" } ?? "choose CSV…") { pickingCast = true }
+                            .buttonStyle(SButton()).disabled(summoning || store.busy != nil)
+                        Button("copy example") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(CastCSV.example, forType: .string)
+                        }.buttonStyle(SButton())
+                    }
+                    if let castError { Text(castError).font(.mono(11)).foregroundStyle(Color.ember) }
+                    Text("An import replaces the draft cast after validation. Traits start unset and ties empty; review the people below before starting.")
+                        .font(.mono(10)).foregroundStyle(Color.muted)
+                }.card(padding: 14)
             case .reuse:
                 if store.communities.isEmpty {
                     Text("Communities you summon are saved here to reuse in other experiments.")
@@ -514,7 +551,7 @@ struct NewExperiment: View {
                     .buttonStyle(.plain)
                 }
             }
-            if mode != .reuse {
+            if mode == .context || mode == .describe {
                 HStack(spacing: 12) {
                     Text("agreeable").font(.mono(11)).foregroundStyle(Color.muted)
                     Slider(value: $temper).frame(maxWidth: 240)
@@ -528,30 +565,32 @@ struct NewExperiment: View {
             if cast.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     Caps("the cast")
-                    ForEach(0..<min(count, 6), id: \.self) { i in
+                    ForEach(0..<(mode == .csv ? 2 : min(count, 6)), id: \.self) { i in
                         HStack(spacing: 10) {
                             RoundedRectangle(cornerRadius: 4).fill(Color.line).frame(width: 28, height: 28)
                             RoundedRectangle(cornerRadius: 3).fill(Color.line).frame(width: CGFloat([90, 70, 110, 80, 100, 60][i]), height: 9)
                             RoundedRectangle(cornerRadius: 3).fill(Color.line.opacity(0.6)).frame(width: CGFloat([180, 220, 150, 200, 170, 210][i]), height: 9)
                         }
                     }
-                    Text("Your \(count) people appear here after summoning. You can rename roles, mark insiders and remove anyone before round 1.")
+                    Text(mode == .csv ? "Choose a CSV to preview your characters here before starting." : "Your \(count) people appear here after summoning. You can rename roles, mark insiders and remove anyone before round 1.")
                         .font(.mono(10)).foregroundStyle(Color.muted)
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
                 .card(.line, dashed: true, padding: 14)
-                VStack(alignment: .leading, spacing: 12) {
-                    Caps("each person comes with")
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], alignment: .leading, spacing: 14) {
-                        trait("personality", "skepticism, curiosity, frugality, influence, warmth")
-                        trait("a starting mood", "how they feel about the question before anyone posts")
-                        trait("interests & goals", "what they care about and want out of this")
-                        trait("ties", "1–3 people they know: coworkers, rivals, friends")
-                        trait("memory", "one line per round, so opinions build over time")
-                        trait("insider or not", "insiders know the brief's insider facts")
+                if mode != .csv {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Caps("each person comes with")
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], alignment: .leading, spacing: 14) {
+                            trait("personality", "skepticism, curiosity, frugality, influence, warmth")
+                            trait("a starting mood", "how they feel about the question before anyone posts")
+                            trait("interests & goals", "what they care about and want out of this")
+                            trait("ties", "1–3 people they know: coworkers, rivals, friends")
+                            trait("memory", "one line per round, so opinions build over time")
+                            trait("insider or not", "insiders know the brief's insider facts")
+                        }
                     }
+                    .card(padding: 16)
                 }
-                .card(padding: 16)
                 Spacer(minLength: 0)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
@@ -626,7 +665,7 @@ struct NewExperiment: View {
                         .position(spots[c.handle] ?? .zero)
                     }
                     if cast.isEmpty {
-                        Text("Summon a community and it appears here.")
+                        Text("Summon or import a community and it appears here.")
                             .font(.mono(11)).foregroundStyle(Color.muted)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
