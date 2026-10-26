@@ -32,6 +32,7 @@ Where things live in `apps/macos/Sources/Sorcerer/`:
 | `Store.swift` / `Workspace.swift` | app state and persistence |
 | `NewExperiment.swift`, `Onboarding.swift` | the creation and first-run flows |
 | `FeedViews.swift`, `CharacterScreen.swift`, `ReportScreen.swift`, `ContextScreen.swift` | main screens |
+| `CastCSV.swift` | validates local CSV character imports |
 | `Sources.swift` | reading a repo, folder, site or files into the brief |
 | `Share.swift` | export (experiment JSON, scenario bundle, report Markdown) |
 | `SettingsWindow.swift`, `Navigation.swift`, `Theme.swift`, `Avatar.swift`, `Updater.swift` | settings, navigation, styling, avatars, updates |

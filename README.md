@@ -107,9 +107,30 @@ skipped, and characters see the brief, never your code.
 <img src="docs/screenshots/new-experiment-brief.png" alt="New experiment: a brief of facts tagged public, insider or hidden" width="100%">
 
 **③ Community & start.** Summon people from your context or from a description, or reuse a community from
-another experiment. Edit anyone before round 1: roles, insiders, who's in.
+another experiment, or import a cast from CSV. Edit anyone before round 1: roles, insiders, who's in.
 
 <img src="docs/screenshots/new-experiment-community.png" alt="New experiment: summon and edit the community of AI characters" width="100%">
+
+### Import a cast from CSV
+
+In **Community & start → CSV**, choose a UTF-8 comma-separated file or use **copy example** as a starting point. Importing replaces the draft cast only after the entire file passes validation. Review the characters before starting; importing itself makes no AI call.
+
+Use 2–16 records, up to 128 KB, with a header row:
+
+| Column | Value |
+| --- | --- |
+| `handle` | Required, unique; 1–32 letters, numbers, `_` or `-`. Lowercased; an outer `@` is removed. |
+| `role` | Required, the person's role in this community. |
+| `bio` | Required, background or interview notes to ground the character. |
+| `interests`, `goals` | Optional, separate items with `|`. |
+| `mood` | Optional number from -1 to 1; defaults to 0. |
+| `insider` | Optional `true` or `false`; defaults to false. |
+
+Column order and capitalization may vary. Unknown or duplicate columns, invalid values and duplicate handles are rejected. Quote fields containing commas, quotes or line breaks; escape a quote as `""`. Traits start unset, ties and memories empty. Use pseudonyms and include only the details you want the selected provider to receive when a simulation or chat uses these characters. Character details are also part of shared experiment/scenario exports.
+
+Try the synthetic [example CSV](docs/examples/cast.csv).
+
+<img src="docs/screenshots/roadmap/csv-cast.png" alt="CSV import with a reviewed synthetic cast before starting an experiment" width="100%">
 
 ### Schedule what happens next
 

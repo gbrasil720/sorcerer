@@ -16,7 +16,7 @@ const CHANGELOG_URL = `${GITHUB_URL}/releases`;
 const ISSUES_URL = `${GITHUB_URL}/issues/new/choose`;
 // Downloading with curl skips the quarantine flag that makes macOS block unsigned apps.
 const INSTALL_CMD = "curl -fsSL https://sorcererapp.dev/install.sh | sh";
-const VERSION = "v0.7";
+const VERSION = "v0.8";
 const LICENSE = "MIT";
 
 /** Live star count from GitHub; null until it loads (or if the API is unreachable). */
@@ -1049,7 +1049,7 @@ function Inside() {
           n="01"
           tag="characters"
           title="They have a face, a past and an opinion."
-          body="Personality, interests, goals, relationships and a memory that persists across rounds. Give each one a pixel portrait and watch the cast take shape."
+          body="Personality, interests, goals, relationships and a memory that persists across rounds. Summon a cast or import 2–16 characters from a CSV, review them, and give each one a pixel portrait."
         >
           <Card className="p-6">
             <div className="flex items-center gap-4">
